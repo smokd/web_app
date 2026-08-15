@@ -52,7 +52,7 @@ export default async function DashboardPage() {
    * ==========================================
    */
 
-  const packhouseRejects =
+  /* const packhouseRejects =
     await prisma.packhouseReject.findMany({
       orderBy: {
         date: 'asc',
@@ -66,6 +66,28 @@ export default async function DashboardPage() {
         variety: true,
       },
     });
+    */
+
+    const packhouseLoads =
+  await prisma.packhouseLoad.findMany({
+    orderBy: {
+      date: 'asc',
+    },
+
+    select: {
+      date: true,
+      processedKg: true,
+      variety: true,
+
+      rejects: {
+        select: {
+          rejectType: true,
+          rejectKg: true,
+          rejectPct: true,
+        },
+      },
+    },
+  });
 
   /*
    * ==========================================
@@ -101,7 +123,7 @@ export default async function DashboardPage() {
    * ==========================================
    */
 
-  const packhouseData =
+  /* const packhouseData =
     packhouseRejects.map((p) => ({
       ...p,
 
@@ -113,6 +135,30 @@ export default async function DashboardPage() {
         name: p.variety,
       },
     }));
+
+    */
+
+    const packhouseData =
+  packhouseLoads.flatMap((load) =>
+    load.rejects.map((reject) => ({
+      date: load.date,
+      variety: {
+        name: load.variety,
+      },
+      rejectType: {
+        name: reject.rejectType,
+      },
+      rejectKg: Number(
+        reject.rejectKg || 0
+      ),
+      rejectPct: Number(
+        reject.rejectPct || 0
+      ),
+      processedKg: Number(
+        load.processedKg || 0
+      ),
+    }))
+  );
 
   /*
    * ==========================================
@@ -143,19 +189,42 @@ export default async function DashboardPage() {
         100
       : 0;
 
-  const totalPackhouseRejectKg =
-    packhouseRejects.reduce(
-      (sum, p) =>
-        sum + Number(p.rejectKg || 0),
-      0
-    );
+  const totalPackhouseProcessedKg =
+  packhouseLoads.reduce(
+    (sum, load) =>
+      sum +
+      Number(load.processedKg || 0),
+    0
+  );
 
-  const packhouseRejectPct =
-    totalProcessedKg > 0
-      ? (totalPackhouseRejectKg /
-          totalProcessedKg) *
-        100
-      : 0;
+const totalPackhouseRejectKg =
+  packhouseLoads.reduce(
+    (sum, load) =>
+      sum +
+      load.rejects.reduce(
+        (rejectSum, reject) =>
+          rejectSum +
+          Number(
+            reject.rejectKg || 0
+          ),
+        0
+      ),
+    0
+  );
+
+const totalPackhouseGoodKg =
+  Math.max(
+    0,
+    totalPackhouseProcessedKg -
+      totalPackhouseRejectKg
+  );
+
+const packhouseRejectPct =
+  totalPackhouseProcessedKg > 0
+    ? (totalPackhouseRejectKg /
+        totalPackhouseProcessedKg) *
+      100
+    : 0;
 
 
 
@@ -258,16 +327,17 @@ const rejectReasonData = groupedRejects.map((item) => ({
         </div>
 
         <div className="dashboard-kpi">
-          <span>Packhouse Rejects</span>
+  <span>Packhouse Rejects</span>
 
-          <strong>
-            {totalPackhouseRejectKg.toLocaleString()} kg
-          </strong>
+  <strong>
+    {totalPackhouseRejectKg.toLocaleString()} kg
+  </strong>
 
-          <small>
-            {packhouseRejectPct.toFixed(2)}%
-          </small>
-        </div>
+  <small>
+    {packhouseRejectPct.toFixed(2)}%
+    of packhouse processed
+  </small>
+</div>
 
       </section>
 

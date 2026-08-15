@@ -306,52 +306,112 @@ export function FieldRejectTrendChart({ data }) {
 }
 
 // 3. Packhouse Reject % Trend Chart - Weekly aggregation (MODIFIED)
-export function PackhouseRejectTrendChart({ data, rejectTypes }) {
-  // Aggregate packhouse reject data by Sunday-Saturday week
-  const weeklyData = data.reduce((acc, item) => {
-    const date = new Date(item.date);
-    const weekStart = getWeekStart(date);
-    const weekKey = weekStart.toISOString().split('T')[0];
+export function PackhouseRejectTrendChart({
+  data,
+  rejectTypes,
+}) {
+  const weeklyData = data.reduce(
+    (acc, item) => {
+      const date = new Date(item.date);
 
-    if (!acc[weekKey]) {
-      acc[weekKey] = {
-        weekStart,
-        totalPct: 0,
-        count: 0,
-      };
-    }
+      const weekStart =
+        getWeekStart(date);
 
-    const pct = Number(item.rejectPct) ?? 0;
-    acc[weekKey].totalPct += pct;
-    acc[weekKey].count++;
+      const weekKey =
+        weekStart
+          .toISOString()
+          .split('T')[0];
 
-    return acc;
-  }, {});
+      if (!acc[weekKey]) {
+        acc[weekKey] = {
+          weekStart,
+          processedKg: 0,
+          rejectKg: 0,
+        };
+      }
 
-  const chartData = Object.values(weeklyData)
-    .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime())
+      acc[weekKey].processedKg +=
+        Number(
+          item.processedKg || 0
+        );
+
+      acc[weekKey].rejectKg +=
+        Number(
+          item.rejectKg || 0
+        );
+
+      return acc;
+    },
+    {}
+  );
+
+  const chartData = Object.values(
+    weeklyData
+  )
+    .sort(
+      (a, b) =>
+        a.weekStart.getTime() -
+        b.weekStart.getTime()
+    )
     .map((week) => {
-      const avgPct = week.count > 0 ? (week.totalPct / week.count) : 0;
-      const weekStart = new Date(week.weekStart);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
+      const rejectPct =
+        week.processedKg > 0
+          ? (week.rejectKg /
+              week.processedKg) *
+            100
+          : 0;
 
-      const formatDate = (date: Date) =>
-        date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        });
+      const weekStart =
+        new Date(
+          week.weekStart
+        );
+
+      const weekEnd =
+        new Date(weekStart);
+
+      weekEnd.setDate(
+        weekStart.getDate() + 6
+      );
+
+      const formatDate = (
+        date: Date
+      ) =>
+        date.toLocaleDateString(
+          'en-US',
+          {
+            month: 'short',
+            day: 'numeric',
+          }
+        );
 
       return {
-        date: `${formatDate(weekStart)}–${formatDate(weekEnd)}`,
-        pct: avgPct,
+        date: `${formatDate(
+          weekStart
+        )}–${formatDate(weekEnd)}`,
+
+        pct: rejectPct,
+
+        processedKg:
+          week.processedKg,
+
+        rejectKg:
+          week.rejectKg,
       };
     });
 
   if (chartData.length === 0) {
     return (
       <Card>
-        <div style={{ height: 300, background: CHART_BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          style={{
+            height: 300,
+            background: CHART_BG,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: CHART_MUTED,
+          }}
+        >
           No packhouse data available
         </div>
       </Card>
@@ -360,19 +420,91 @@ export function PackhouseRejectTrendChart({ data, rejectTypes }) {
 
   return (
     <Card>
-      <div style={{ height: 300, background: CHART_BG, borderRadius: 12, border: `1px solid ${CHART_BORDER}` }}>
-        <RechartsResponsiveContainer width="100%" height={300}>
-          <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" />
-            <XAxis dataKey="date" stroke={CHART_MUTED} fontSize={10} tickLine={false} axisLine={false} />
-            <YAxis stroke={CHART_MUTED} fontSize={10} tickLine={false} axisLine={false} />
-            <Tooltip formatter={v => [`${v.toFixed(2)}%`, 'Avg Reject']} contentStyle={{
-              background: CHART_BG,
-              border: `1px solid ${CHART_BORDER}`,
-              borderRadius: 8,
-              color: CHART_TEXT,
-            }} />
-            <Line type="monotone" dataKey="pct" stroke={CHART_SECONDARY} strokeWidth={2} />
+      <div
+        style={{
+          height: 300,
+          background: CHART_BG,
+          borderRadius: 12,
+          border:
+            `1px solid ${CHART_BORDER}`,
+        }}
+      >
+        <RechartsResponsiveContainer
+          width="100%"
+          height={300}
+        >
+          <LineChart
+            data={chartData}
+            margin={{
+              top: 10,
+              right: 20,
+              left: 0,
+              bottom: 0,
+            }}
+          >
+            <CartesianGrid
+              stroke={CHART_GRID}
+              strokeDasharray="3 3"
+            />
+
+            <XAxis
+              dataKey="date"
+              stroke={CHART_MUTED}
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+            />
+
+            <YAxis
+              stroke={CHART_MUTED}
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) =>
+                `${value}%`
+              }
+            />
+
+            <Tooltip
+              formatter={(
+                value,
+                name
+              ) => {
+                if (
+                  name === 'Reject Rate'
+                ) {
+                  return [
+                    `${Number(
+                      value
+                    ).toFixed(2)}%`,
+                    'Reject Rate',
+                  ];
+                }
+
+                return [
+                  `${Number(
+                    value
+                  ).toLocaleString()} kg`,
+                  name,
+                ];
+              }}
+              contentStyle={{
+                background: CHART_BG,
+                border:
+                  `1px solid ${CHART_BORDER}`,
+                borderRadius: 8,
+                color: CHART_TEXT,
+              }}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="pct"
+              name="Reject Rate"
+              stroke={CHART_SECONDARY}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+            />
           </LineChart>
         </RechartsResponsiveContainer>
       </div>
