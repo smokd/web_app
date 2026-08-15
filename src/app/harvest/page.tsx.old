@@ -1,0 +1,56 @@
+import { redirect } from 'next/navigation';
+import prisma from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
+import HarvestForm from './components/HarvestForm.tsx.old';
+import HarvestTable from './components/HarvestTable';
+
+export default async function HarvestPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
+  const session = await getSession();
+  if (!session) redirect('/login');
+
+  const params = await searchParams;
+  const date = params?.date || new Date().toISOString().split('T')[0];
+
+  const [varieties, weatherOptions, records] = await Promise.all([
+    prisma.variety.findMany({ where: { active: true }, orderBy: { name: 'asc' } }),
+    prisma.weatherOption.findMany({ orderBy: { name: 'asc' } }),
+    prisma.harvest.findMany({
+      where: { date: { startsWith: date } },
+      orderBy: { id: 'asc' },
+      include: {
+        fieldRejects: true,
+        packhouseLoad: { include: { rejects: true } },
+      },
+    }),
+  ]);
+
+  return (
+    <main className="bg-primary" style={{ minHeight: '100vh', padding: '2rem' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        <h1 style={{ marginBottom: '1.5rem' }}>Daily Harvest Entry</h1>
+
+        <div className="glass-panel animate-fade-in" style={{ padding: '1.5rem', borderRadius: 12, marginBottom: '2rem' }}>
+          <HarvestForm
+            varieties={varieties}
+            weatherOptions={weatherOptions}
+            date={date}
+          />
+        </div>
+
+        <div className="glass-panel animate-fade-in" style={{ padding: '1.5rem', borderRadius: 12 }}>
+          <HarvestTable
+            records={records}
+            date={date}
+            isAdmin={session.role === 'ADMIN'}
+            varieties={varieties}
+            weatherOptions={weatherOptions}
+          />
+        </div>
+      </div>
+    </main>
+  );
+}

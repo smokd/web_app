@@ -1,0 +1,152 @@
+import { redirect } from 'next/navigation';
+import prisma from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
+import WeeklyReport from './components/WeeklyReport';
+
+function getWeekStart(dateStr: string): Date {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  return d;
+}
+
+function formatDate(d: Date): string {
+  return d.toISOString().split('T')[0];
+}
+
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
+  const session = await getSession();
+  if (!session) redirect('/login');
+
+  const params = await searchParams;
+  const pickedDate = params?.date || new Date().toISOString().split('T')[0];
+  const weekStart = getWeekStart(pickedDate);
+
+  const weekDates: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    weekDates.push(formatDate(d));
+  }
+
+  const dateFilters = weekDates.map((d) => ({ date: { startsWith: d } }));
+
+  const harvests = await prisma.harvest.findMany({
+    where: { OR: dateFilters },
+    include: {
+      fieldRejects: true,
+      packhouseLoad: { include: { rejects: true } },
+    },
+    orderBy: { date: 'asc' },
+  });
+
+  // DEBUG: log what we got
+  console.log('=== REPORTS QUERY ===');
+  console.log('Week dates:', weekDates);
+  console.log('Records found:', harvests.length);
+  harvests.forEach((h) => {
+    console.log(`  Harvest ${h.id} (${h.variety}):`, {
+      fieldRejects: h.fieldRejects.length,
+      packhouseLoad: h.packhouseLoad ? {
+        processedKg: h.packhouseLoad.processedKg,
+        rejects: h.packhouseLoad.rejects.length,
+      } : null,
+    });
+  });
+
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  return (
+    <main className="bg-primary" style={{ minHeight: '100vh', padding: '2rem' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <h1 style={{ marginBottom: '1.5rem' }}>Weekly Report</h1>
+
+        <WeekPicker pickedDate={pickedDate} />
+
+        <p style={{ marginBottom: '1.5rem', opacity: 0.8, fontSize: '0.9rem' }}>
+          Showing <strong>{formatDate(weekStart)}</strong> – <strong>{formatDate(weekEnd)}</strong>
+          {' '}(week containing {pickedDate})
+        </p>
+
+        {harvests.length === 0 && (
+          <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', marginBottom: '2rem' }}>
+            <p style={{ opacity: 0.7, marginBottom: '0.5rem' }}>
+              No data for the week of <strong>{formatDate(weekStart)}</strong>.
+            </p>
+            <p style={{ fontSize: '0.9rem', opacity: 0.6 }}>
+              Your database has records around <strong>June 2026</strong>. Try picking a date in that range.
+            </p>
+          </div>
+        )}
+
+        {/* DEBUG: Raw data table */}
+        {harvests.length > 0 && (
+          <div className="glass-panel" style={{ marginBottom: '2rem', overflowX: 'auto' }}>
+            <h3 style={{ marginBottom: '0.75rem', fontSize: '0.9rem' }}>🔍 Raw Data Check</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                  <th style={{ textAlign: 'left', padding: '0.4rem' }}>ID</th>
+                  <th style={{ textAlign: 'left', padding: '0.4rem' }}>Date</th>
+                  <th style={{ textAlign: 'left', padding: '0.4rem' }}>Variety</th>
+                  <th style={{ textAlign: 'right', padding: '0.4rem' }}>Harvested</th>
+                  <th style={{ textAlign: 'right', padding: '0.4rem' }}>Field Rejects</th>
+                  <th style={{ textAlign: 'right', padding: '0.4rem' }}>Packhouse Load</th>
+                  <th style={{ textAlign: 'right', padding: '0.4rem' }}>Packhouse Rejects</th>
+                </tr>
+              </thead>
+              <tbody>
+                {harvests.map((h) => (
+                  <tr key={h.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '0.4rem' }}>{h.id}</td>
+                    <td style={{ padding: '0.4rem' }}>{h.date}</td>
+                    <td style={{ padding: '0.4rem' }}>{h.variety}</td>
+                    <td style={{ padding: '0.4rem', textAlign: 'right' }}>{h.harvestedKg}</td>
+                    <td style={{ padding: '0.4rem', textAlign: 'right' }}>{h.fieldRejects.length}</td>
+                    <td style={{ padding: '0.4rem', textAlign: 'right' }}>
+                      {h.packhouseLoad ? h.packhouseLoad.processedKg : '—'}
+                    </td>
+                    <td style={{ padding: '0.4rem', textAlign: 'right' }}>
+                      {h.packhouseLoad ? h.packhouseLoad.rejects.length : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <WeeklyReport data={harvests} />
+      </div>
+    </main>
+  );
+}
+
+function WeekPicker({ pickedDate }: { pickedDate: string }) {
+  return (
+    <form
+      method="GET"
+      action="/reports"
+      style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', marginBottom: '1rem', flexWrap: 'wrap' }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <label style={{ fontSize: '0.75rem', opacity: 0.7 }}>Pick any date</label>
+        <input
+          type="date"
+          name="date"
+          defaultValue={pickedDate}
+          style={{ padding: '0.5rem', borderRadius: 6, border: '1px solid var(--border)' }}
+        />
+      </div>
+      <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}>
+        Load Report
+      </button>
+    </form>
+  );
+}

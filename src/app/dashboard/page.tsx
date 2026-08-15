@@ -1,0 +1,349 @@
+import prisma from '@/lib/prisma';
+
+import {
+  HarvestTrendChart,
+  HarvestTrendChartB,
+  HarvestTrendChartC,
+  FieldRejectTrendChart,
+  PackhouseRejectTrendChart,
+  TopRejectReasonsChart,
+  HarvestByVarietyChart,
+} from '@/components/charts';
+
+export default async function DashboardPage() {
+
+  /*
+   * ==========================================
+   * HARVEST DATA
+   * ==========================================
+   */
+
+  const harvests = await prisma.harvest.findMany({
+    orderBy: {
+      date: 'asc',
+    },
+
+    select: {
+      date: true,
+      harvestedKg: true,
+      fieldRejectPct: true,
+      variety: true,
+      fieldRejectsKg: true,
+    },
+  });
+
+  /*
+   * ==========================================
+   * PACKHOUSE DATA
+   * ==========================================
+   */
+
+  const packhouseRejects =
+    await prisma.packhouseReject.findMany({
+      orderBy: {
+        date: 'asc',
+      },
+
+      select: {
+        date: true,
+        rejectPct: true,
+        rejectKg: true,
+        rejectType: true,
+        variety: true,
+      },
+    });
+
+  /*
+   * ==========================================
+   * REJECT TYPES
+   * ==========================================
+   */
+
+  const rejectTypes =
+    await prisma.rejectType.findMany({
+      select: {
+        name: true,
+      },
+    });
+
+  /*
+   * ==========================================
+   * FORMAT HARVEST DATA
+   * ==========================================
+   */
+
+  const harvestData = harvests.map((h) => ({
+    ...h,
+
+    variety: {
+      name: h.variety,
+    },
+  }));
+
+  /*
+   * ==========================================
+   * FORMAT PACKHOUSE DATA
+   * ==========================================
+   */
+
+  const packhouseData =
+    packhouseRejects.map((p) => ({
+      ...p,
+
+      rejectType: {
+        name: p.rejectType,
+      },
+
+      variety: {
+        name: p.variety,
+      },
+    }));
+
+  /*
+   * ==========================================
+   * KPI CALCULATIONS
+   * ==========================================
+   */
+
+  const totalHarvestKg = harvests.reduce(
+    (sum, h) =>
+      sum + Number(h.harvestedKg || 0),
+    0
+  );
+
+  const totalFieldRejectKg =
+    harvests.reduce(
+      (sum, h) =>
+        sum + Number(h.fieldRejectsKg || 0),
+      0
+    );
+
+  const totalProcessedKg =
+    totalHarvestKg - totalFieldRejectKg;
+
+  const fieldRejectPct =
+    totalHarvestKg > 0
+      ? (totalFieldRejectKg /
+          totalHarvestKg) *
+        100
+      : 0;
+
+  const totalPackhouseRejectKg =
+    packhouseRejects.reduce(
+      (sum, p) =>
+        sum + Number(p.rejectKg || 0),
+      0
+    );
+
+  const packhouseRejectPct =
+    totalProcessedKg > 0
+      ? (totalPackhouseRejectKg /
+          totalProcessedKg) *
+        100
+      : 0;
+
+  return (
+    <main className="dashboard">
+
+      {/* ======================================
+          HEADER
+      ====================================== */}
+
+      <div className="dashboard-header">
+
+        <div>
+          <h1>Blueberry QA Dashboard</h1>
+
+          <p>
+            Harvest, field quality and
+            packhouse performance
+          </p>
+        </div>
+
+      </div>
+
+      {/* ======================================
+          KPI CARDS
+      ====================================== */}
+
+      <section className="dashboard-kpis">
+
+        <div className="dashboard-kpi">
+          <span>Total Harvest</span>
+
+          <strong>
+            {totalHarvestKg.toLocaleString()} kg
+          </strong>
+
+          <small>
+            Total harvested
+          </small>
+        </div>
+
+        <div className="dashboard-kpi">
+          <span>Field Rejects</span>
+
+          <strong>
+            {totalFieldRejectKg.toLocaleString()} kg
+          </strong>
+
+          <small>
+            {fieldRejectPct.toFixed(2)}% of harvest
+          </small>
+        </div>
+
+        <div className="dashboard-kpi">
+          <span>Processed</span>
+
+          <strong>
+            {totalProcessedKg.toLocaleString()} kg
+          </strong>
+
+          <small>
+            After field rejects
+          </small>
+        </div>
+
+        <div className="dashboard-kpi">
+          <span>Packhouse Rejects</span>
+
+          <strong>
+            {totalPackhouseRejectKg.toLocaleString()} kg
+          </strong>
+
+          <small>
+            {packhouseRejectPct.toFixed(2)}%
+          </small>
+        </div>
+
+      </section>
+
+      {/* ======================================
+          HARVEST TREND
+      ====================================== */}
+
+      <section className="dashboard-card dashboard-wide">
+
+        <div className="dashboard-card-header">
+          <div>
+            <h2>Harvest Trend</h2>
+
+            <p>
+              Daily blueberry harvest volume
+            </p>
+          </div>
+        </div>
+
+        <div className="dashboard-chart large">
+          <HarvestTrendChart
+            data={harvestData}
+          />
+        </div>
+
+      </section>
+
+      {/* ======================================
+          TWO COLUMN ANALYSIS
+      ====================================== */}
+
+      <section className="dashboard-grid">
+
+        {/* FIELD REJECT */}
+        <div className="dashboard-card">
+
+          <div className="dashboard-card-header">
+            <div>
+              <h2>Field Reject Trend</h2>
+
+              <p>
+                Reject percentage over time
+              </p>
+            </div>
+          </div>
+
+          <div className="dashboard-chart">
+            <FieldRejectTrendChart
+              data={harvestData}
+            />
+          </div>
+
+        </div>
+
+        {/* VARIETY */}
+        <div className="dashboard-card">
+
+          <div className="dashboard-card-header">
+            <div>
+              <h2>Harvest by Variety</h2>
+
+              <p>
+                Production volume by variety
+              </p>
+            </div>
+          </div>
+
+          <div className="dashboard-chart">
+            <HarvestByVarietyChart
+              data={harvestData}
+            />
+          </div>
+
+        </div>
+
+      </section>
+
+      {/* ======================================
+          QUALITY ANALYSIS
+      ====================================== */}
+
+      <section className="dashboard-grid">
+
+        {/* TOP FIELD REJECTS */}
+        <div className="dashboard-card">
+
+          <div className="dashboard-card-header">
+            <div>
+              <h2>Top Reject Reasons</h2>
+
+              <p>
+                Main field quality issues
+              </p>
+            </div>
+          </div>
+
+          <div className="dashboard-chart">
+            <TopRejectReasonsChart
+              data={harvestData}
+              rejectTypes={rejectTypes}
+            />
+          </div>
+
+        </div>
+
+        {/* PACKHOUSE */}
+        <div className="dashboard-card">
+
+          <div className="dashboard-card-header">
+            <div>
+              <h2>Packhouse Reject Trend</h2>
+
+              <p>
+                Packhouse quality performance
+              </p>
+            </div>
+          </div>
+
+          <div className="dashboard-chart">
+            <PackhouseRejectTrendChart
+              data={packhouseData}
+              rejectTypes={rejectTypes}
+            />
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+  );
+}

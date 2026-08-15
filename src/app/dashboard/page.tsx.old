@@ -1,0 +1,93 @@
+import { Tabs, TabPanel, Grid, Card } from '@/components/ui';
+import prisma from '@/lib/prisma';
+import {
+  HarvestTrendChart,
+  HarvestTrendChartB,
+  FieldRejectTrendChart,
+  PackhouseRejectTrendChart,
+  TopRejectReasonsChart,
+  HarvestByVarietyChart,
+  HarvestTrendChartC
+} from '@/components/charts';
+
+export default async function DashboardPage() {
+  // Query Harvest data
+  const harvests = await prisma.harvest.findMany({
+    orderBy: { date: 'asc' },
+    select: {
+      date: true,
+      harvestedKg: true,
+      fieldRejectPct: true,
+      variety: true,
+      fieldRejectsKg: true
+    }
+  });
+
+  // Query all reject types for filtering
+  const rejectTypes = await prisma.rejectType.findMany({
+    select: { name: true }
+  });
+
+  // Query PackhouseReject data
+  const packhouseRejects = await prisma.packhouseReject.findMany({
+    orderBy: { date: 'asc' },
+    select: {
+      date: true,
+      rejectPct: true,
+      rejectKg: true,
+      rejectType: true,
+      variety: true
+    }
+  });
+
+  // Convert variety/rejectType strings to proper format for charts
+  const harvestData = harvests.map(h => ({
+    ...h,
+    variety: { name: h.variety }
+  }));
+
+  const packhouseData = packhouseRejects.map(p => ({
+    ...p,
+    rejectType: { name: p.rejectType },
+    variety: { name: p.variety }
+  }));
+
+  return (
+    <section className="dashboard">
+      <Tabs tabs={[
+        { id: 'harvest', label: 'Harvest' },
+        { id: 'reject', label: 'Field Rejects' },
+        { id: 'packhouse', label: 'Packhouse' },
+        { id: 'varieties', label: 'Varieties' }
+      ]} defaultTab="harvest">
+
+      <TabPanel activeTab="harvest">
+        <Grid columns={2}>
+          <HarvestTrendChart data={harvestData} />
+          <HarvestTrendChartB data={harvestData} />
+          <HarvestTrendChartC data={harvestData} />
+        </Grid>
+      </TabPanel>
+
+      <TabPanel activeTab="reject">
+        <Card title="Field Reject Analysis">
+          <FieldRejectTrendChart data={harvestData} />
+        </Card>
+      </TabPanel>
+
+      <TabPanel activeTab="packhouse">
+        <Card title="Packhouse Analysis">
+          <PackhouseRejectTrendChart data={packhouseData} rejectTypes={rejectTypes} />
+          <TopRejectReasonsChart data={packhouseData} rejectTypes={rejectTypes} />
+        </Card>
+      </TabPanel>
+
+      <TabPanel activeTab="varieties">
+        <Grid columns={2}>
+          <HarvestByVarietyChart data={harvestData} />
+        </Grid>
+      </TabPanel>
+      </Tabs>
+    </section>
+  );
+}
