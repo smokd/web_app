@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { createHarvestRecord } from '../actions';
+import { createHarvestRecord } from '../actions.ts';
 import FieldRejectSection from './FieldRejectSection';
 import PackhouseSection from './PackhouseSection';
 import WeatherInput, { WeatherData } from './WeatherInput';

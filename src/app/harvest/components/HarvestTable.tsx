@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { updateHarvestRecord, deleteHarvestRecord } from '../actions';
+import { updateHarvestRecord, deleteHarvestRecord } from '../actions.ts';
 
 type FieldReject = { id: number; rejectType: string; rejectPct: number };
 type PackhouseReject = { id: number; rejectType: string; rejectKg: number; rejectPct: number };

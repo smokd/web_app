@@ -24,6 +24,11 @@ const getWeekStart = (date: Date) => {
   return result;
 };
 
+type RejectReasonData = {
+  name: string;
+  kg: number;
+};
+
 // 1. Harvest Trend Chart - Line chart (original daily)
 export function HarvestTrendChart({ data }) {
   const chartData = (data || []).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -376,17 +381,24 @@ export function PackhouseRejectTrendChart({ data, rejectTypes }) {
 }
 
 // 4. Top Reject Reasons Chart - Horizontal Bar
-export function TopRejectReasonsChart({ data, rejectTypes }) {
-  const agg = (data || []).reduce((acc, d) => {
+export function TopRejectReasonsChart({ data,}: {data:RejectReasonData[];}) {
+  /*const agg = (data || []).reduce((acc, d) => {
     const name = d.rejectType?.name || 'Other';
     acc[name] = (acc[name] || 0) + (d.rejectKg ?? 0);
     return acc;
   }, {});
+  */
 
-  const chartData = Object.entries(agg)
+  /*const chartData = Object.entries(agg)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
     .map(([name, kg]) => ({ name, kg }));
+    */
+
+    const chartData = (data ?? [])
+    .filter((item) => item.kg > 0)
+    .sort((a, b) => b.kg - a.kg)
+    .slice(0, 10);
 
   if (chartData.length === 0) {
     return (

@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "src/app/page.tsx", "src/app/dashboard/page.tsx.old", "src/app/harvest/page.tsx.old", "src/app/HarvestForm.tsx.old", "src/app/reports/page.tsx.old", "actions.ts.old"  ],
   "exclude": ["node_modules"]
 }

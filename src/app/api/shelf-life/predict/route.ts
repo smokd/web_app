@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from '@/lib/auth';
 import { predictShelfLife } from "@/app/shelf-life/lib/prediction";
 import { validatePredictionInputs } from "@/app/shelf-life/lib/validation";
 
 export async function GET(req: NextRequest) {
+
   try {
+     await requireAuth();
     const { searchParams } = new URL(req.url);
     const variety = searchParams.get("variety") || "";
     const pickTemp = parseFloat(searchParams.get("pickTemp") || "0");

@@ -1,0 +1,175 @@
+'use client';
+
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { createHarvestRecord } from './harvest/actions';
+import FieldRejectSection from './harvest/components/FieldRejectSection';
+import PackhouseSection from './harvest/components/PackhouseSection';
+import WeatherInput, { WeatherData } from './harvest/components/WeatherInput';
+
+type Variety = { id: number; name: string };
+type WeatherOpt = { id: number; name: string };
+
+export default function HarvestForm({
+  varieties,
+  weatherOptions,
+  date,
+}: {
+  varieties: Variety[];
+  weatherOptions: WeatherOpt[];
+  date: string;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [message, setMessage] = useState('');
+
+  const [variety, setVariety] = useState('');
+  const [harvestedKg, setHarvestedKg] = useState('');
+  const [blocks, setBlocks] = useState('');
+  const [supervisor, setSupervisor] = useState('');
+  const [notes, setNotes] = useState('');
+
+  // Store kg values in UI, convert to pct for server
+  const [fieldRejects, setFieldRejects] = useState<{ rejectType: string; rejectKg: number }[]>([]);
+  const [processedKg, setProcessedKg] = useState(0);
+  const [packhouseRejects, setPackhouseRejects] = useState<{ rejectType: string; rejectKg: number }[]>([]);
+
+  const [weather, setWeather] = useState<WeatherData>({
+    condition: '', temp: 0, lat: null, lon: null, source: 'manual',
+  });
+
+  function handleDateChange(newDate: string) {
+    router.push(`/harvest?date=${newDate}`);
+  }
+
+  async function handleSubmit(formData: FormData) {
+    setMessage('');
+
+    const harvestedNum = parseFloat(harvestedKg || '0');
+
+    // Convert kg → pct for server
+    const fieldRejectsPct = fieldRejects.map((r) => ({
+      rejectType: r.rejectType,
+      rejectPct: harvestedNum > 0 ? Math.round(((r.rejectKg || 0) / harvestedNum) * 10000) / 100 : 0,
+    }));
+
+    formData.set('fieldRejects', JSON.stringify(fieldRejectsPct));
+    formData.set('packhouse', JSON.stringify({ processedKg, rejects: packhouseRejects }));
+    formData.set('weather', weather.condition);
+    formData.set('weatherTemp', String(weather.temp ?? ''));
+    formData.set('weatherLat', String(weather.lat ?? ''));
+    formData.set('weatherLon', String(weather.lon ?? ''));
+    formData.set('weatherSource', weather.source);
+
+    startTransition(async () => {
+      try {
+        await createHarvestRecord(formData);
+        setMessage('Record saved successfully.');
+        setVariety('');
+        setHarvestedKg('');
+        setBlocks('');
+        setSupervisor('');
+        setNotes('');
+        setFieldRejects([]);
+        setProcessedKg(0);
+        setPackhouseRejects([]);
+        setWeather({ condition: '', temp: 0, lat: null, lon: null, source: 'manual' });
+        router.refresh();
+      } catch (err: any) {
+        setMessage(err.message || 'Save failed.');
+      }
+    });
+  }
+
+  const harvestedNum = parseFloat(harvestedKg || '0');
+  const totalFieldRejectKg = fieldRejects.reduce((s, r) => s + (r.rejectKg || 0), 0);
+  const totalFieldRejectPct = harvestedNum > 0 ? (totalFieldRejectKg / harvestedNum) * 100 : 0;
+
+  return (
+    <form id="harvest-form" action={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        <div>
+          <label htmlFor="date">Date</label>
+          <input id="date" name="date" type="date" defaultValue={date} required
+            onChange={(e) => handleDateChange(e.target.value)}
+            style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid var(--border)' }} />
+        </div>
+        <div>
+          <label htmlFor="variety">Variety</label>
+          <select id="variety" name="variety" value={variety} onChange={(e) => setVariety(e.target.value)} required
+            style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid var(--border)' }}>
+            <option value="" disabled>Select variety</option>
+            {varieties.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="harvestedKg">Harvested (kg)</label>
+          <input id="harvestedKg" name="harvestedKg" type="number" min="0" step="0.01" required
+            value={harvestedKg} onChange={(e) => setHarvestedKg(e.target.value)}
+            style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid var(--border)' }} />
+        </div>
+        <div>
+  <label>Field Rejects (kg)</label>
+
+  <div
+    style={{
+      width: '100%',
+      padding: '0.5rem',
+      borderRadius: 6,
+      background: 'var(--formula-bg, #e8f5e9)',
+      border: '1px solid var(--border)',
+      fontWeight: 600,
+    }}
+  >
+    {totalFieldRejectKg.toFixed(2)} kg
+  </div>
+</div>
+        <div>
+          <label>Field Reject % (auto)</label>
+          <div style={{ padding: '0.5rem', borderRadius: 6, background: 'var(--formula-bg, #e8f5e9)', border: '1px solid var(--border)', fontWeight: 600 }}>
+            {totalFieldRejectPct.toFixed(2)}%
+          </div>
+        </div>
+        <div>
+          <label htmlFor="blocks">Blocks</label>
+          <input id="blocks" name="blocks" type="text" placeholder="e.g. 14,15,27&29"
+            value={blocks} onChange={(e) => setBlocks(e.target.value)}
+            style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid var(--border)' }} />
+        </div>
+        <div>
+          <label htmlFor="supervisor">Supervisor</label>
+          <input id="supervisor" name="supervisor" type="text"
+            value={supervisor} onChange={(e) => setSupervisor(e.target.value)}
+            style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid var(--border)' }} />
+        </div>
+      </div>
+
+      <FieldRejectSection
+        fieldRejects={fieldRejects}
+        harvestedKg={harvestedNum}
+        onChange={setFieldRejects}
+      />
+      <PackhouseSection processedKg={processedKg} onProcessedKgChange={setProcessedKg} rejects={packhouseRejects} onRejectsChange={setPackhouseRejects} />
+      <WeatherInput value={weather} onChange={setWeather} />
+
+      <div>
+        <label htmlFor="notes">Notes</label>
+        <textarea id="notes" name="notes" rows={3} maxLength={500}
+          value={notes} onChange={(e) => setNotes(e.target.value)}
+          style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid var(--border)', resize: 'vertical' }} />
+      </div>
+
+      {message && (
+        <p style={{ color: message.includes('success') ? '#2e7d32' : '#c62828', fontSize: '0.9rem' }}>
+          {message}
+        </p>
+      )}
+
+      <div style={{ display: 'flex', gap: '1rem' }}>
+        <button type="submit" disabled={pending} className="btn btn-primary" style={{ opacity: pending ? 0.6 : 1 }}>
+          {pending ? 'Saving…' : 'Save Harvest Record'}
+        </button>
+      </div>
+    </form>
+  );
+}

@@ -32,6 +32,20 @@ export default async function DashboardPage() {
     },
   });
 
+    const fieldRejects = await prisma.fieldReject.findMany({
+  orderBy: {
+    date: 'asc',
+  },
+  select: {
+    date: true,
+    variety: true,
+    rejectType: true,
+    rejectKg: true,
+    rejectPct: true,
+  },
+});
+
+
   /*
    * ==========================================
    * PACKHOUSE DATA
@@ -62,6 +76,7 @@ export default async function DashboardPage() {
   const rejectTypes =
     await prisma.rejectType.findMany({
       select: {
+        id: true,
         name: true,
       },
     });
@@ -141,6 +156,44 @@ export default async function DashboardPage() {
           totalProcessedKg) *
         100
       : 0;
+
+
+
+
+/*
+   * ==========================================
+   * REJECTREASONS DATA
+   * ==========================================
+   */
+
+const groupedRejects = Object.values(
+  fieldRejects.reduce(
+    (acc, item) => {
+      if (!acc[item.rejectType]) {
+        acc[item.rejectType] = {
+          rejectType: item.rejectType,
+          rejectKg: 0,
+        };
+      }
+
+      acc[item.rejectType].rejectKg += Number(item.rejectKg || 0);
+
+      return acc;
+    },
+    {} as Record<
+      string,
+      {
+        rejectType: string;
+        rejectKg: number;
+      }
+    >
+  )
+);
+
+const rejectReasonData = groupedRejects.map((item) => ({
+  name: item.rejectType,
+  kg: Number(item.rejectKg || 0),
+}));
 
   return (
     <main className="dashboard">
@@ -313,8 +366,7 @@ export default async function DashboardPage() {
 
           <div className="dashboard-chart">
             <TopRejectReasonsChart
-              data={harvestData}
-              rejectTypes={rejectTypes}
+              data={rejectReasonData}
             />
           </div>
 

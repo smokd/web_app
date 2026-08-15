@@ -1,11 +1,11 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { requireAuth } from '@/lib/auth';
+import { requireAdmin} from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
 export async function createShelfLifeSample(formData: FormData) {
-  await requireAuth();
+  await requireAdmin();
 
   const sample = await prisma.shelfLifeSample.create({
     data: {
@@ -137,7 +137,7 @@ export async function markSampleFailed(formData: FormData) {
 }
 
 export async function deleteShelfLifeSample(formData: FormData) {
-  await requireAuth();
+  await requireAdmin{};
   const id = String(formData.get('id'));
   await prisma.shelfLifeSample.delete({ where: { id } });
   revalidatePath('/shelf-life');

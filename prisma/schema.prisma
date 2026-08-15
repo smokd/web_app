@@ -1,0 +1,211 @@
+// Model definitions go here
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Reference tables
+
+model Variety {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique
+  active Boolean @default(true)
+}
+
+model RejectType {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  category String  @default("packhouse") // "field" | "packhouse"
+  active   Boolean @default(true)
+}
+
+model WeatherOption {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+}
+
+// Harvest data
+
+model Harvest {
+  id             Int     @id @default(autoincrement())
+  date           String
+  variety        String
+  harvestedKg    Float
+  fieldRejectsKg Float   @default(0)
+  fieldRejectPct Float   @default(0)
+  blocks         String?
+  supervisor     String?
+  notes          String?
+
+  weather       String?
+  weatherTemp   Float?
+  weatherLat    Float?
+  weatherLon    Float?
+  weatherSource String?
+
+  createdAt DateTime @default(now())
+
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id])
+
+  fieldRejects  FieldReject[]
+  packhouseLoad PackhouseLoad?
+}
+
+model FieldReject {
+  id         Int    @id @default(autoincrement())
+  date       String
+  variety    String
+  rejectType String
+  rejectKg   Float  @default(0)
+  rejectPct  Float  @default(0)
+
+  harvestId Int?
+  harvest   Harvest? @relation(fields: [harvestId], references: [id], onDelete: Cascade)
+}
+
+model PackhouseLoad {
+  id          Int               @id @default(autoincrement())
+  date        String
+  variety     String
+  processedKg Float
+  notes       String?
+  harvestId   Int?              @unique // <-- nullable
+  harvest     Harvest?          @relation(fields: [harvestId], references: [id], onDelete: Cascade)
+  rejects     PackhouseReject[]
+}
+
+model PackhouseReject {
+  id              Int            @id @default(autoincrement())
+  date            String
+  variety         String
+  rejectType      String
+  rejectKg        Float
+  rejectPct       Float
+  notes           String?
+  packhouseLoadId Int? // <-- nullable
+  packhouseLoad   PackhouseLoad? @relation(fields: [packhouseLoadId], references: [id], onDelete: Cascade)
+}
+
+// Block-level data
+
+model Block {
+  id             Int    @id @default(autoincrement())
+  date           String
+  block          String
+  variety        String
+  harvestedKg    Float
+  fieldRejectsKg Float
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         String    @default("USER")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  harvests     Harvest[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// Shelf Life Tracking
+
+model ShelfLifeSample {
+  id            String   @id @default(cuid())
+  sampleId      String   @unique
+  sampleType    String
+  variety       String
+  fruitSize     Int?
+  lCode         String?
+  block         String?
+  pickDate      String?
+  pickTemp      Float?
+  packDate      String?
+  brix          Float?
+  freightType   String?
+  customer      String?
+  palletCode    String?
+  week          Int?
+  moisturePct   Float?
+  packWeight    Float?
+  targetTemp    Float    @default(5.0)
+  status        String   @default("ACTIVE")
+  totalDays     Int?
+  failureReason String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  observations   ShelfLifeObservation[]
+  weightReadings ShelfLifeWeightReading[]
+}
+
+model ShelfLifeObservation {
+  id             String          @id @default(cuid())
+  sampleId       String
+  sample         ShelfLifeSample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  day            Int
+  observedAt     DateTime        @default(now())
+  shrivelCount   Int             @default(0)
+  softCount      Int             @default(0)
+  collapsedCount Int             @default(0)
+  otherDefects   String?
+  overallStatus  String?
+  totalDefects   Int             @default(0)
+  notes          String?
+}
+
+model ShelfLifeWeightReading {
+  id             String          @id @default(cuid())
+  sampleId       String
+  sample         ShelfLifeSample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  day            Int
+  weightGrams    Float
+  observedAt     DateTime        @default(now())
+  weightLossPct  Float?
+  lossRatePctDay Float?
+  abnormal       Boolean         @default(false)
+}
+
+model ShelfLifeVarietyProfile {
+  id                     String  @id @default(cuid())
+  variety                String  @unique
+  avgShelfLifeAir        Float?
+  avgShelfLifeSea        Float?
+  failureRatePct         Float?
+  avgBrix                Float?
+  avgPickTemp            Float?
+  recommendedAirOverpack Float?
+  recommendedSeaOverpack Float?
+  riskLevelAir           String?
+  riskLevelSea           String?
+}
+
+model ShelfLifeTempImpact {
+  id           String @id @default(cuid())
+  tempRange    String @unique
+  avgShelfLife Float?
+  failureRate  Float?
+  sampleCount  Int?
+}
+
+model ShelfLifeWeightCurve {
+  id               String @id @default(cuid())
+  variety          String
+  day              Int
+  predictedLossPct Float
+  upper95LossPct   Float
+
+  @@unique([variety, day])
+}
