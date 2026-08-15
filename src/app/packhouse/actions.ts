@@ -89,6 +89,7 @@ function parseRejects(
   });
 }
 
+
 export async function createPackhouseLoad(
   formData: FormData
 ) {
@@ -140,11 +141,15 @@ export async function createPackhouseLoad(
     );
   }
 
-  if (processedKg > harvest.harvestedKg) {
-    throw new Error(
-      'Processed kg cannot exceed harvested kg'
-    );
-  }
+  const availableKg =
+  harvest.harvestedKg -
+  harvest.fieldRejectsKg;
+
+if (processedKg > availableKg) {
+  throw new Error(
+    `Processed kg cannot exceed available harvest quantity (${availableKg.toFixed(2)} kg)`
+  );
+}
 
   const totalRejectKg = rejects.reduce(
     (sum, reject) => sum + reject.rejectKg,

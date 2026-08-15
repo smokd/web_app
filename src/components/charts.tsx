@@ -566,21 +566,49 @@ export function TopRejectReasonsChart({ data,}: {data:RejectReasonData[];}) {
 
 // 5. Harvest by Variety Chart - Vertical Bar
 export function HarvestByVarietyChart({ data }) {
-  const agg = (data || []).reduce((acc, d) => {
-    const name = d.variety?.name || 'Unknown';
-    acc[name] = (acc[name] || 0) + (d.harvestedKg ?? 0);
-    return acc;
-  }, {});
+  const grouped = (data || []).reduce(
+    (acc, item) => {
+      const variety =
+        item?.variety?.name ||
+        item?.variety ||
+        'Unknown';
 
-  const chartData = Object.entries(agg)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([name, kg]) => ({ name, kg }));
+      if (!acc[variety]) {
+        acc[variety] = 0;
+      }
+
+      acc[variety] +=
+        Number(item.harvestedKg || 0);
+
+      return acc;
+    },
+    {}
+  );
+
+  const chartData = Object.entries(
+    grouped
+  )
+    .map(([name, kg]) => ({
+      name,
+      kg: Number(kg),
+    }))
+    .sort(
+      (a, b) => b.kg - a.kg
+    );
 
   if (chartData.length === 0) {
     return (
       <Card>
-        <div style={{ height: 300, background: CHART_BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          style={{
+            height: 300,
+            background: CHART_BG,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: CHART_MUTED,
+          }}
+        >
           No harvest data available
         </div>
       </Card>
@@ -589,19 +617,77 @@ export function HarvestByVarietyChart({ data }) {
 
   return (
     <Card>
-      <div style={{ height: 300, background: CHART_BG, borderRadius: 12, border: `1px solid ${CHART_BORDER}` }}>
-        <RechartsResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 50, left: 10, bottom: 5 }}>
-            <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" />
-            <XAxis type="number" dataKey="kg" stroke={CHART_MUTED} fontSize={10} tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v} />
-            <YAxis dataKey="name" width={100} stroke={CHART_MUTED} fontSize={10} />
-            <Tooltip formatter={v => [`${v.toLocaleString()} kg`, 'Harvested']} contentStyle={{
-              background: CHART_BG,
-              border: `1px solid ${CHART_BORDER}`,
-              borderRadius: 8,
-              color: CHART_TEXT,
-            }} />
-            <Bar dataKey="kg" fill={CHART_PRIMARY} radius={[0, 4, 4, 0]} />
+      <div
+        style={{
+          height: 300,
+          background: CHART_BG,
+          borderRadius: 12,
+          border:
+            `1px solid ${CHART_BORDER}`,
+        }}
+      >
+        <RechartsResponsiveContainer
+          width="100%"
+          height={300}
+        >
+          <BarChart
+            data={chartData}
+            margin={{
+              top: 10,
+              right: 20,
+              left: 20,
+              bottom: 10,
+            }}
+          >
+            <CartesianGrid
+              stroke={CHART_GRID}
+              strokeDasharray="3 3"
+            />
+
+            <XAxis
+              dataKey="name"
+              stroke={CHART_MUTED}
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+            />
+
+            <YAxis
+              stroke={CHART_MUTED}
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) =>
+                Number(value).toLocaleString()
+              }
+            />
+
+            <Tooltip
+              formatter={(value) => [
+                `${Number(
+                  value
+                ).toLocaleString()} kg`,
+                'Harvested',
+              ]}
+              contentStyle={{
+                background: CHART_BG,
+                border:
+                  `1px solid ${CHART_BORDER}`,
+                borderRadius: 8,
+                color: CHART_TEXT,
+              }}
+            />
+
+            <Bar
+              dataKey="kg"
+              fill={CHART_PRIMARY}
+              radius={[
+                4,
+                4,
+                0,
+                0,
+              ]}
+            />
           </BarChart>
         </RechartsResponsiveContainer>
       </div>
