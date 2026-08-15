@@ -48,3 +48,13 @@ next-env.d.ts
 /shelflife/
 /data/
 /scripts/
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Prisma local databases
+prisma/*.db
