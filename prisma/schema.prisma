@@ -1,5 +1,3 @@
-// Model definitions go here
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -8,8 +6,6 @@ generator client {
 datasource db {
   provider = "sqlite"
 }
-
-// Reference tables
 
 model Variety {
   id     Int     @id @default(autoincrement())
@@ -20,7 +16,7 @@ model Variety {
 model RejectType {
   id       Int     @id @default(autoincrement())
   name     String  @unique
-  category String  @default("packhouse") // "field" | "packhouse"
+  category String  @default("packhouse")
   active   Boolean @default(true)
 }
 
@@ -29,44 +25,37 @@ model WeatherOption {
   name String @unique
 }
 
-// Harvest data
-
 model Harvest {
-  id             Int     @id @default(autoincrement())
+  id             Int            @id @default(autoincrement())
   date           String
   variety        String
   harvestedKg    Float
-  fieldRejectsKg Float   @default(0)
-  fieldRejectPct Float   @default(0)
+  fieldRejectsKg Float          @default(0)
+  fieldRejectPct Float          @default(0)
   blocks         String?
   supervisor     String?
   notes          String?
-
-  weather       String?
-  weatherTemp   Float?
-  weatherLat    Float?
-  weatherLon    Float?
-  weatherSource String?
-
-  createdAt DateTime @default(now())
-
-  userId Int?
-  user   User? @relation(fields: [userId], references: [id])
-
-  fieldRejects  FieldReject[]
-  packhouseLoad PackhouseLoad?
+  weather        String?
+  weatherTemp    Float?
+  weatherLat     Float?
+  weatherLon     Float?
+  weatherSource  String?
+  createdAt      DateTime       @default(now())
+  userId         Int?
+  fieldRejects   FieldReject[]
+  user           User?          @relation(fields: [userId], references: [id])
+  packhouseLoad  PackhouseLoad?
 }
 
 model FieldReject {
-  id         Int    @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   date       String
   variety    String
   rejectType String
-  rejectKg   Float  @default(0)
-  rejectPct  Float  @default(0)
-
-  harvestId Int?
-  harvest   Harvest? @relation(fields: [harvestId], references: [id], onDelete: Cascade)
+  rejectKg   Float    @default(0)
+  rejectPct  Float    @default(0)
+  harvestId  Int?
+  harvest    Harvest? @relation(fields: [harvestId], references: [id], onDelete: Cascade)
 }
 
 model PackhouseLoad {
@@ -75,7 +64,7 @@ model PackhouseLoad {
   variety     String
   processedKg Float
   notes       String?
-  harvestId   Int?              @unique // <-- nullable
+  harvestId   Int?              @unique
   harvest     Harvest?          @relation(fields: [harvestId], references: [id], onDelete: Cascade)
   rejects     PackhouseReject[]
 }
@@ -88,11 +77,9 @@ model PackhouseReject {
   rejectKg        Float
   rejectPct       Float
   notes           String?
-  packhouseLoadId Int? // <-- nullable
+  packhouseLoadId Int?
   packhouseLoad   PackhouseLoad? @relation(fields: [packhouseLoadId], references: [id], onDelete: Cascade)
 }
-
-// Block-level data
 
 model Block {
   id             Int    @id @default(autoincrement())
@@ -104,65 +91,42 @@ model Block {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   name         String
-  email        String    @unique
+  email        String     @unique
   passwordHash String
-  role         String    @default("USER")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
+  role         String     @default("USER")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   harvests     Harvest[]
   auditLogs    AuditLog[]
 }
 
-model AuditLog {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-
-  userId Int?
-  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  action     String
-  entity     String
-  entityId   String?
-  description String?
-  changes    String?
-}
-
-enum Role {
-  USER
-  ADMIN
-}
-
-// Shelf Life Tracking
-
 model ShelfLifeSample {
-  id            String   @id @default(cuid())
-  sampleId      String   @unique
-  sampleType    String
-  variety       String
-  fruitSize     Int?
-  lCode         String?
-  block         String?
-  pickDate      String?
-  pickTemp      Float?
-  packDate      String?
-  brix          Float?
-  freightType   String?
-  customer      String?
-  palletCode    String?
-  week          Int?
-  moisturePct   Float?
-  packWeight    Float?
-  targetTemp    Float    @default(5.0)
-  status        String   @default("ACTIVE")
-  totalDays     Int?
-  failureReason String?
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
+  id             String                   @id @default(cuid())
+  sampleId       String                   @unique
+  sampleType     String
+  variety        String
+  fruitSize      Int?
+  lCode          String?
+  block          String?
+  pickDate       String?
+  pickTemp       Float?
+  packDate       String?
+  brix           Float?
+  freightType    String?
+  customer       String?
+  palletCode     String?
+  week           Int?
+  moisturePct    Float?
+  packWeight     Float?
+  targetTemp     Float                    @default(5.0)
+  status         String                   @default("ACTIVE")
+  totalDays      Int?
+  failureReason  String?
+  notes          String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
   observations   ShelfLifeObservation[]
   weightReadings ShelfLifeWeightReading[]
 }
@@ -170,7 +134,6 @@ model ShelfLifeSample {
 model ShelfLifeObservation {
   id             String          @id @default(cuid())
   sampleId       String
-  sample         ShelfLifeSample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
   day            Int
   observedAt     DateTime        @default(now())
   shrivelCount   Int             @default(0)
@@ -180,18 +143,19 @@ model ShelfLifeObservation {
   overallStatus  String?
   totalDefects   Int             @default(0)
   notes          String?
+  sample         ShelfLifeSample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
 }
 
 model ShelfLifeWeightReading {
   id             String          @id @default(cuid())
   sampleId       String
-  sample         ShelfLifeSample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
   day            Int
   weightGrams    Float
   observedAt     DateTime        @default(now())
   weightLossPct  Float?
   lossRatePctDay Float?
   abnormal       Boolean         @default(false)
+  sample         ShelfLifeSample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
 }
 
 model ShelfLifeVarietyProfile {
@@ -224,4 +188,23 @@ model ShelfLifeWeightCurve {
   upper95LossPct   Float
 
   @@unique([variety, day])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action      String
+  entity      String
+  entityId    String?
+  description String?
+  changes     String?
 }
