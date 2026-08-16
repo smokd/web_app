@@ -1,12 +1,9 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
-import {
-  updateHarvestRecord,
-  deleteHarvestRecord,
-} from '../actions.ts';
+import { updateHarvestRecord, deleteHarvestRecord } from "../actions.ts";
 
 type FieldReject = {
   id: number;
@@ -56,9 +53,7 @@ type Weather = {
   name: string;
 };
 
-function fmtKg(
-  value: number | null | undefined
-) {
+function fmtKg(value: number | null | undefined) {
   const kg = Number(value);
 
   if (!Number.isFinite(kg)) {
@@ -93,14 +88,11 @@ export default function MonthlyHarvestVerification({
 }) {
   const router = useRouter();
 
-  const [editingId, setEditingId] =
-    useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
-  const [pending, setPending] =
-    useState(false);
+  const [pending, setPending] = useState(false);
 
-  const [message, setMessage] =
-    useState('');
+  const [message, setMessage] = useState("");
 
   const totals = useMemo(() => {
     return records.reduce(
@@ -109,38 +101,19 @@ export default function MonthlyHarvestVerification({
         sum.fieldRejectsKg += record.fieldRejectsKg;
 
         if (record.packhouseLoad) {
-          if (
-  Array.isArray(
-    record.packhouseLoad
-  )
-) {
-  for (
-    const load of
-    record.packhouseLoad
-  ) {
-    sum.packhouseProcessedKg +=
-      Number(
-        load.processedKg
-      ) || 0;
+          if (Array.isArray(record.packhouseLoad)) {
+            for (const load of record.packhouseLoad) {
+              sum.packhouseProcessedKg += Number(load.processedKg) || 0;
 
-    sum.packhouseRejectsKg +=
-      Array.isArray(
-        load.rejects
-      )
-        ? load.rejects.reduce(
-            (
-              rejectSum,
-              reject
-            ) =>
-              rejectSum +
-              (Number(
-                reject.rejectKg
-              ) || 0),
-            0
-          )
-        : 0;
-  }
-}
+              sum.packhouseRejectsKg += Array.isArray(load.rejects)
+                ? load.rejects.reduce(
+                    (rejectSum, reject) =>
+                      rejectSum + (Number(reject.rejectKg) || 0),
+                    0,
+                  )
+                : 0;
+            }
+          }
         }
 
         return sum;
@@ -150,88 +123,66 @@ export default function MonthlyHarvestVerification({
         fieldRejectsKg: 0,
         packhouseProcessedKg: 0,
         packhouseRejectsKg: 0,
-      }
+      },
     );
   }, [records]);
 
   const monthlyFieldRejectPct =
     totals.harvestedKg > 0
-      ? (totals.fieldRejectsKg /
-          totals.harvestedKg) *
-        100
+      ? (totals.fieldRejectsKg / totals.harvestedKg) * 100
       : 0;
 
   const monthlyPackhouseRejectPct =
     totals.packhouseProcessedKg > 0
-      ? (totals.packhouseRejectsKg /
-          totals.packhouseProcessedKg) *
-        100
+      ? (totals.packhouseRejectsKg / totals.packhouseProcessedKg) * 100
       : 0;
 
-  function selectMonth(
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
+  function selectMonth(event: React.ChangeEvent<HTMLInputElement>) {
     const selectedMonth = event.target.value;
 
     if (!selectedMonth) return;
 
-    router.push(
-      `/harvest?month=${selectedMonth}&date=${selectedMonth}-01`
-    );
+    router.push(`/harvest?month=${selectedMonth}&date=${selectedMonth}-01`);
   }
 
-  async function handleUpdate(
-    formData: FormData
-  ) {
+  async function handleUpdate(formData: FormData) {
     setPending(true);
-    setMessage('');
+    setMessage("");
 
     try {
       await updateHarvestRecord(formData);
 
       setEditingId(null);
-      setMessage('Record updated.');
+      setMessage("Record updated.");
 
       router.refresh();
     } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : 'Update failed.'
-      );
+      setMessage(error instanceof Error ? error.message : "Update failed.");
     } finally {
       setPending(false);
     }
   }
 
   async function handleDelete(id: number) {
-    if (
-      !confirm(
-        'Are you sure you want to delete this harvest record?'
-      )
-    ) {
+    if (!confirm("Are you sure you want to delete this harvest record?")) {
       return;
     }
 
     setPending(true);
-    setMessage('');
+    setMessage("");
 
     try {
       const formData = new FormData();
 
-      formData.set('id', String(id));
+      formData.set("id", String(id));
 
       await deleteHarvestRecord(formData);
 
-      setMessage('Record deleted.');
+      setMessage("Record deleted.");
 
       router.refresh();
     } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : 'Delete failed.'
-      );
+      setMessage(error instanceof Error ? error.message : "Delete failed.");
     } finally {
       setPending(false);
     }
@@ -239,26 +190,22 @@ export default function MonthlyHarvestVerification({
 
   return (
     <div>
-
       <div
         className="section-heading"
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          gap: '1rem',
-          flexWrap: 'wrap',
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: "1rem",
+          flexWrap: "wrap",
         }}
       >
-
         <div>
-          <h2>
-            Monthly Harvest Verification
-          </h2>
+          <h2>Monthly Harvest Verification</h2>
 
           <p>
-            Temporary tool for checking entered
-            harvest data against the original records.
+            Temporary tool for checking entered harvest data against the
+            original records.
           </p>
         </div>
 
@@ -266,9 +213,9 @@ export default function MonthlyHarvestVerification({
           <label
             htmlFor="verification-month"
             style={{
-              display: 'block',
-              fontSize: '0.8rem',
-              marginBottom: '0.3rem',
+              display: "block",
+              fontSize: "0.8rem",
+              marginBottom: "0.3rem",
               opacity: 0.7,
             }}
           >
@@ -281,24 +228,22 @@ export default function MonthlyHarvestVerification({
             value={month}
             onChange={selectMonth}
             style={{
-              padding: '0.5rem',
+              padding: "0.5rem",
               borderRadius: 6,
-              border: '1px solid var(--border)',
+              border: "1px solid var(--border)",
             }}
           />
         </div>
-
       </div>
 
       {message && (
         <p
           style={{
-            marginBottom: '1rem',
+            marginBottom: "1rem",
             color:
-              message.includes('updated') ||
-              message.includes('deleted')
-                ? '#2e7d32'
-                : '#c62828',
+              message.includes("updated") || message.includes("deleted")
+                ? "#2e7d32"
+                : "#c62828",
           }}
         >
           {message}
@@ -307,81 +252,60 @@ export default function MonthlyHarvestVerification({
 
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns:
-            'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: '0.75rem',
-          marginBottom: '1rem',
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: "0.75rem",
+          marginBottom: "1rem",
         }}
       >
-
         <div>
           <strong>Harvested</strong>
-          <div>
-            {fmtKg(totals.harvestedKg)} kg
-          </div>
+          <div>{fmtKg(totals.harvestedKg)} kg</div>
         </div>
 
         <div>
           <strong>Field Rejects</strong>
           <div>
-            {fmtKg(totals.fieldRejectsKg)} kg
-            {' '}
-            ({fmtPct(monthlyFieldRejectPct)}%)
+            {fmtKg(totals.fieldRejectsKg)} kg ({fmtPct(monthlyFieldRejectPct)}%)
           </div>
         </div>
 
         <div>
           <strong>Packhouse Processed</strong>
-          <div>
-            {fmtKg(
-              totals.packhouseProcessedKg
-            )}{' '}
-            kg
-          </div>
+          <div>{fmtKg(totals.packhouseProcessedKg)} kg</div>
         </div>
 
         <div>
           <strong>Packhouse Rejects</strong>
           <div>
-            {fmtKg(
-              totals.packhouseRejectsKg
-            )}{' '}
-            kg
-            {' '}
-            ({fmtPct(
-              monthlyPackhouseRejectPct
-            )}%)
+            {fmtKg(totals.packhouseRejectsKg)} kg (
+            {fmtPct(monthlyPackhouseRejectPct)}%)
           </div>
         </div>
-
       </div>
 
       {records.length === 0 ? (
         <div
           style={{
-            textAlign: 'center',
-            padding: '2rem',
+            textAlign: "center",
+            padding: "2rem",
             opacity: 0.7,
           }}
         >
           No harvest records for {month}.
         </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-
+        <div style={{ overflowX: "auto" }}>
           <table
             style={{
-              width: '100%',
-              borderCollapse: 'collapse',
+              width: "100%",
+              borderCollapse: "collapse",
             }}
           >
-
             <thead>
               <tr
                 style={{
-                  borderBottom:
-                    '2px solid var(--border)',
+                  borderBottom: "2px solid var(--border)",
                 }}
               >
                 <th>Date</th>
@@ -391,46 +315,31 @@ export default function MonthlyHarvestVerification({
                 <th>Field %</th>
                 <th>Packhouse</th>
                 <th>Packhouse Rej</th>
-                {isAdmin && (
-                  <th>Actions</th>
-                )}
+                {isAdmin && <th>Actions</th>}
               </tr>
             </thead>
 
             <tbody>
-
               {records.map((record) => {
-
-                if (
-                  editingId === record.id
-                ) {
+                if (editingId === record.id) {
                   return (
                     <tr key={record.id}>
                       <td
-                        colSpan={
-                          isAdmin ? 8 : 7
-                        }
+                        colSpan={isAdmin ? 8 : 7}
                         style={{
-                          padding: '1rem',
+                          padding: "1rem",
                         }}
                       >
-
                         <form
                           action={handleUpdate}
                           style={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: '0.75rem',
-                            alignItems:
-                              'flex-end',
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "0.75rem",
+                            alignItems: "flex-end",
                           }}
                         >
-
-                          <input
-                            type="hidden"
-                            name="id"
-                            value={record.id}
-                          />
+                          <input type="hidden" name="id" value={record.id} />
 
                           <input
                             type="hidden"
@@ -442,20 +351,13 @@ export default function MonthlyHarvestVerification({
                             Variety
                             <select
                               name="variety"
-                              defaultValue={
-                                record.variety
-                              }
+                              defaultValue={record.variety}
                             >
-                              {varieties.map(
-                                (v) => (
-                                  <option
-                                    key={v.id}
-                                    value={v.name}
-                                  >
-                                    {v.name}
-                                  </option>
-                                )
-                              )}
+                              {varieties.map((v) => (
+                                <option key={v.id} value={v.name}>
+                                  {v.name}
+                                </option>
+                              ))}
                             </select>
                           </label>
 
@@ -466,9 +368,7 @@ export default function MonthlyHarvestVerification({
                               type="number"
                               min="0"
                               step="0.01"
-                              defaultValue={
-                                record.harvestedKg
-                              }
+                              defaultValue={record.harvestedKg}
                             />
                           </label>
 
@@ -479,9 +379,7 @@ export default function MonthlyHarvestVerification({
                               type="number"
                               min="0"
                               step="0.01"
-                              defaultValue={
-                                record.fieldRejectsKg
-                              }
+                              defaultValue={record.fieldRejectsKg}
                             />
                           </label>
 
@@ -490,9 +388,7 @@ export default function MonthlyHarvestVerification({
                             <input
                               name="blocks"
                               type="text"
-                              defaultValue={
-                                record.blocks || ''
-                              }
+                              defaultValue={record.blocks || ""}
                             />
                           </label>
 
@@ -500,24 +396,15 @@ export default function MonthlyHarvestVerification({
                             Weather
                             <select
                               name="weather"
-                              defaultValue={
-                                record.weather || ''
-                              }
+                              defaultValue={record.weather || ""}
                             >
-                              <option value="">
-                                —
-                              </option>
+                              <option value="">—</option>
 
-                              {weatherOptions.map(
-                                (w) => (
-                                  <option
-                                    key={w.id}
-                                    value={w.name}
-                                  >
-                                    {w.name}
-                                  </option>
-                                )
-                              )}
+                              {weatherOptions.map((w) => (
+                                <option key={w.id} value={w.name}>
+                                  {w.name}
+                                </option>
+                              ))}
                             </select>
                           </label>
 
@@ -526,10 +413,7 @@ export default function MonthlyHarvestVerification({
                             <input
                               name="supervisor"
                               type="text"
-                              defaultValue={
-                                record.supervisor ||
-                                ''
-                              }
+                              defaultValue={record.supervisor || ""}
                             />
                           </label>
 
@@ -543,9 +427,7 @@ export default function MonthlyHarvestVerification({
                             <input
                               name="notes"
                               type="text"
-                              defaultValue={
-                                record.notes || ''
-                              }
+                              defaultValue={record.notes || ""}
                             />
                           </label>
 
@@ -554,149 +436,109 @@ export default function MonthlyHarvestVerification({
                             className="btn btn-primary"
                             disabled={pending}
                           >
-                            {pending
-                              ? 'Saving...'
-                              : 'Save'}
+                            {pending ? "Saving..." : "Save"}
                           </button>
 
                           <button
                             type="button"
                             className="btn btn-secondary"
-                            onClick={() =>
-                              setEditingId(null)
-                            }
+                            onClick={() => setEditingId(null)}
                             disabled={pending}
                           >
                             Cancel
                           </button>
-
                         </form>
-
                       </td>
                     </tr>
                   );
                 }
 
-                const packhouseRejectKg =
-  Array.isArray(
-    record.packhouseLoad
-  )
-    ? record.packhouseLoad.reduce(
-        (loadSum, load) =>
-          loadSum +
-          (Array.isArray(
-            load.rejects
-          )
-            ? load.rejects.reduce(
-                (
-                  rejectSum,
-                  reject
-                ) =>
-                  rejectSum +
-                  (Number(
-                    reject.rejectKg
-                  ) || 0),
-                0
-              )
-            : 0),
-        0
-      )
-    : 0;
+                const packhouseRejectKg = Array.isArray(record.packhouseLoad)
+                  ? record.packhouseLoad.reduce(
+                      (loadSum, load) =>
+                        loadSum +
+                        (Array.isArray(load.rejects)
+                          ? load.rejects.reduce(
+                              (rejectSum, reject) =>
+                                rejectSum + (Number(reject.rejectKg) || 0),
+                              0,
+                            )
+                          : 0),
+                      0,
+                    )
+                  : 0;
 
                 return (
                   <tr
                     key={record.id}
                     style={{
-                      borderBottom:
-                        '1px solid var(--border)',
+                      borderBottom: "1px solid var(--border)",
                     }}
                   >
+                    <td>{record.date}</td>
 
-                    <td>
-                      {record.date}
-                    </td>
-
-                    <td>
-                      {record.variety}
-                    </td>
+                    <td>{record.variety}</td>
 
                     <td
                       style={{
-                        textAlign: 'right',
+                        textAlign: "right",
                       }}
                     >
-                      {fmtKg(
-                        record.harvestedKg
-                      )}
+                      {fmtKg(record.harvestedKg)}
                     </td>
 
                     <td
                       style={{
-                        textAlign: 'right',
+                        textAlign: "right",
                       }}
                     >
-                      {fmtKg(
-                        record.fieldRejectsKg
-                      )}
+                      {fmtKg(record.fieldRejectsKg)}
                     </td>
 
                     <td
                       style={{
-                        textAlign: 'right',
+                        textAlign: "right",
                       }}
                     >
-                      {fmtPct(
-                        record.fieldRejectPct
-                      )}
-                      %
+                      {fmtPct(record.fieldRejectPct)}%
                     </td>
 
                     <td
                       style={{
-                        textAlign: 'right',
+                        textAlign: "right",
                       }}
                     >
                       {record.packhouseLoad.length > 0
-  ? fmtKg(
-      record.packhouseLoad.reduce(
-        (sum, load) =>
-          sum +
-          (Number(load.processedKg) || 0),
-        0
-      )
-    )
-  : '—'}
+                        ? fmtKg(
+                            record.packhouseLoad.reduce(
+                              (sum, load) =>
+                                sum + (Number(load.processedKg) || 0),
+                              0,
+                            ),
+                          )
+                        : "—"}
                     </td>
 
                     <td
                       style={{
-                        textAlign: 'right',
+                        textAlign: "right",
                       }}
                     >
-                      {record.packhouseLoad
-                        ? fmtKg(
-                            packhouseRejectKg
-                          )
-                        : '—'}
+                      {record.packhouseLoad ? fmtKg(packhouseRejectKg) : "—"}
                     </td>
 
                     {isAdmin && (
                       <td>
                         <div
                           style={{
-                            display: 'flex',
-                            gap: '0.4rem',
+                            display: "flex",
+                            gap: "0.4rem",
                           }}
                         >
-
                           <button
                             type="button"
                             className="btn btn-secondary"
-                            onClick={() =>
-                              setEditingId(
-                                record.id
-                              )
-                            }
+                            onClick={() => setEditingId(record.id)}
                             disabled={pending}
                           >
                             Edit
@@ -705,105 +547,76 @@ export default function MonthlyHarvestVerification({
                           <button
                             type="button"
                             className="btn"
-                            onClick={() =>
-                              handleDelete(
-                                record.id
-                              )
-                            }
+                            onClick={() => handleDelete(record.id)}
                             disabled={pending}
                             style={{
-                              background:
-                                '#c62828',
-                              color: '#fff',
+                              background: "#c62828",
+                              color: "#fff",
                             }}
                           >
                             Delete
                           </button>
-
                         </div>
                       </td>
                     )}
-
                   </tr>
                 );
               })}
 
               <tr
                 style={{
-                  borderTop:
-                    '2px solid var(--border)',
+                  borderTop: "2px solid var(--border)",
                   fontWeight: 700,
                 }}
               >
+                <td colSpan={2}>MONTH TOTAL</td>
 
-                <td colSpan={2}>
-                  MONTH TOTAL
+                <td
+                  style={{
+                    textAlign: "right",
+                  }}
+                >
+                  {fmtKg(totals.harvestedKg)}
                 </td>
 
                 <td
                   style={{
-                    textAlign: 'right',
+                    textAlign: "right",
                   }}
                 >
-                  {fmtKg(
-                    totals.harvestedKg
-                  )}
+                  {fmtKg(totals.fieldRejectsKg)}
                 </td>
 
                 <td
                   style={{
-                    textAlign: 'right',
+                    textAlign: "right",
                   }}
                 >
-                  {fmtKg(
-                    totals.fieldRejectsKg
-                  )}
+                  {fmtPct(monthlyFieldRejectPct)}%
                 </td>
 
                 <td
                   style={{
-                    textAlign: 'right',
+                    textAlign: "right",
                   }}
                 >
-                  {fmtPct(
-                    monthlyFieldRejectPct
-                  )}
-                  %
+                  {fmtKg(totals.packhouseProcessedKg)}
                 </td>
 
                 <td
                   style={{
-                    textAlign: 'right',
+                    textAlign: "right",
                   }}
                 >
-                  {fmtKg(
-                    totals.packhouseProcessedKg
-                  )}
+                  {fmtKg(totals.packhouseRejectsKg)}
                 </td>
 
-                <td
-                  style={{
-                    textAlign: 'right',
-                  }}
-                >
-                  {fmtKg(
-                    totals.packhouseRejectsKg
-                  )}
-                </td>
-
-                {isAdmin && (
-                  <td />
-                )}
-
+                {isAdmin && <td />}
               </tr>
-
             </tbody>
-
           </table>
-
         </div>
       )}
-
     </div>
   );
 }
