@@ -44,20 +44,23 @@ model Harvest {
   userId         Int?
   fieldRejects   FieldReject[]
   user           User?          @relation(fields: [userId], references: [id])
-  packhouseLoad  PackhouseLoad?
+  packhouseLoad  PackhouseLoad[]
 }
 
 model FieldReject {
-  id         Int      @id @default(autoincrement())
-  date       String
-  variety    String
-  rejectType String
-  inputMode  String   @default("KG")
-  inputValue Float    @default(0)
-  rejectKg   Float    @default(0)
-  rejectPct  Float    @default(0)
-  harvestId  Int?
-  harvest    Harvest? @relation(fields: [harvestId], references: [id], onDelete: Cascade)
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  variety     String
+  rejectType  String
+
+  inputMode   String   @default("KG")
+  inputValue  Float    @default(0)
+
+  rejectKg    Float
+  rejectPct   Float
+
+  harvestId   Int
+  harvest     Harvest  @relation(fields: [harvestId], references: [id])
 }
 
 model PackhouseLoad {

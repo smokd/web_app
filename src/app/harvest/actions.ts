@@ -19,10 +19,16 @@ type PackhouseRejectInput = {
   inputValue: number;
 };
 
-type PackhouseInput = {
+type PackhouseEntryInput = {
+  variety: string;
   processedKg: number;
-  notes?: string;
+  rejectKg: number;
   rejects: PackhouseRejectInput[];
+  notes?: string | null;
+};
+
+type PackhouseInput = {
+  entries: PackhouseEntryInput[];
 };
 
 function calcRejectPct(
@@ -217,7 +223,10 @@ function parseFieldRejects(
 function parsePackhouse(
   value: FormDataEntryValue | null
 ): PackhouseInput | null {
-  if (value === null || String(value).trim() === '') {
+  if (
+    value === null ||
+    String(value).trim() === ''
+  ) {
     return null;
   }
 
@@ -226,100 +235,190 @@ function parsePackhouse(
   try {
     parsed = JSON.parse(String(value));
   } catch {
-    throw new Error('Invalid packhouse data');
-  }
-
-  if (!parsed || typeof parsed !== 'object') {
-    throw new Error('Invalid packhouse data');
-  }
-
-  const data = parsed as Record<string, unknown>;
-
-  const processedKg = Number(data.processedKg ?? 0);
-
-  if (!Number.isFinite(processedKg) || processedKg < 0) {
     throw new Error(
-      'Packhouse processed kg must be a valid non-negative number'
+      'Invalid packhouse data'
     );
   }
 
-  const notes =
-    data.notes === undefined || data.notes === null
-      ? undefined
-      : String(data.notes).trim();
-
-  const rawRejects = data.rejects ?? [];
-
-  if (!Array.isArray(rawRejects)) {
-    throw new Error('Packhouse rejects must be an array');
+  if (
+    !parsed ||
+    typeof parsed !== 'object'
+  ) {
+    throw new Error(
+      'Invalid packhouse data'
+    );
   }
 
-  const rejects: PackhouseRejectInput[] = rawRejects.map(
-    (item, index) => {
-      if (!item || typeof item !== 'object') {
-        throw new Error(
-          `Invalid packhouse reject at row ${index + 1}`
-        );
-      }
+  const raw =
+    parsed as Record<string, unknown>;
 
-      const row = item as Record<string, unknown>;
+  if (!Array.isArray(raw.entries)) {
+    throw new Error(
+      'Packhouse entries must be an array'
+    );
+  }
 
-      const rejectType = String(
-                row.rejectType ?? ''
-              ).trim();
-
-              const inputMode = parseRejectInputMode(
-                row.inputMode
-              );
-
-              const inputValue = Number(
-                row.inputValue
-              );
-      const rejectKg = Number(row.rejectKg);
-
-      if (!rejectType) {
-        throw new Error(
-          `Packhouse reject type is required at row ${index + 1}`
-        );
-      }
-
-      if (
-          !Number.isFinite(inputValue) ||
-          inputValue < 0
+  const entries: PackhouseEntryInput[] =
+    raw.entries.map(
+      (item, index) => {
+        if (
+          !item ||
+          typeof item !== 'object'
         ) {
           throw new Error(
-            `Packhouse reject value is invalid at row ${index + 1}`
+            `Invalid packhouse entry at row ${index + 1}`
+          );
+        }
+
+        const row =
+          item as Record<
+            string,
+            unknown
+          >;
+
+        const variety =
+          String(
+            row.variety ?? ''
+          ).trim();
+
+        const processedKg =
+          Number(
+            row.processedKg
+          );
+
+        const rejectKg =
+          Number(
+            row.rejectKg
+          ) || 0;
+
+        if (!variety) {
+          throw new Error(
+            `Packhouse variety is required at row ${index + 1}`
           );
         }
 
         if (
-          inputMode === 'PERCENT' &&
-          inputValue > 100
+          !Number.isFinite(
+            processedKg
+          ) ||
+          processedKg < 0
         ) {
           throw new Error(
-            `Packhouse reject percentage cannot exceed 100% at row ${index + 1}`
+            `Packhouse processed kg is invalid at row ${index + 1}`
           );
         }
 
-      /* if (!Number.isFinite(rejectKg) || rejectKg < 0) {
-        throw new Error(
-          `Packhouse reject kg is invalid at row ${index + 1}`
-        );
-      } */
+        if (
+          !Number.isFinite(
+            rejectKg
+          ) ||
+          rejectKg < 0
+        ) {
+          throw new Error(
+            `Packhouse reject kg is invalid at row ${index + 1}`
+          );
+        }
 
-      return {
-        rejectType,
-        inputMode,
-        inputValue,
-      };
-    }
-  );
+        if (
+          rejectKg >
+          processedKg + 0.01
+        ) {
+          throw new Error(
+            `Packhouse rejects cannot exceed processed kg at row ${index + 1}`
+          );
+        }
 
-  return {
-    processedKg,
-    notes,
-    rejects,
-  };
+        const rawRejects =
+          Array.isArray(
+            row.rejects
+          )
+            ? row.rejects
+            : [];
+
+        const rejects =
+          rawRejects.map(
+            (reject, rejectIndex) => {
+              if (
+                !reject ||
+                typeof reject !==
+                  'object'
+              ) {
+                throw new Error(
+                  `Invalid packhouse reject at row ${rejectIndex + 1}`
+                );
+              }
+
+              const r =
+                reject as Record<
+                  string,
+                  unknown
+                >;
+
+              const rejectType =
+                String(
+                  r.rejectType ??
+                    ''
+                ).trim();
+
+              const inputMode =
+                parseRejectInputMode(
+                  r.inputMode
+                );
+
+              const inputValue =
+                Number(
+                  r.inputValue
+                );
+
+              if (!rejectType) {
+                throw new Error(
+                  `Packhouse reject type is required at row ${rejectIndex + 1}`
+                );
+              }
+
+              if (
+                !Number.isFinite(
+                  inputValue
+                ) ||
+                inputValue < 0
+              ) {
+                throw new Error(
+                  `Packhouse reject value is invalid at row ${rejectIndex + 1}`
+                );
+              }
+
+              if (
+                inputMode ===
+                  'PERCENT' &&
+                inputValue > 100
+              ) {
+                throw new Error(
+                  `Packhouse reject percentage cannot exceed 100% at row ${rejectIndex + 1}`
+                );
+              }
+
+              return {
+                rejectType,
+                inputMode,
+                inputValue,
+              };
+            }
+          );
+
+        return {
+          variety,
+          processedKg,
+          rejectKg,
+          rejects,
+          notes:
+            String(
+              row.notes ?? ''
+            ).trim() || null,
+        };
+      }
+    );
+
+  return { entries };
 }
 
 
@@ -443,7 +542,7 @@ let resolvedPackhouseRejects: ReturnType<
   typeof resolveRejectBreakdown
 > = [];
 
-if (packhouse) {
+/* if (packhouse) {
   totalPackhouseRejectKg = parseFiniteNumber(
     formData.get('packhouseRejectsKg'),
     'Packhouse rejects kg',
@@ -465,6 +564,26 @@ if (packhouse) {
       totalPackhouseRejectKg,
       'Packhouse reject'
     );
+} */
+
+    let packhouseEntries =
+  packhouse?.entries ?? [];
+
+for (
+  const entry of packhouseEntries
+) {
+  if (entry.processedKg <= 0) {
+    continue;
+  }
+
+  if (
+    entry.rejectKg >
+    entry.processedKg + 0.01
+  ) {
+    throw new Error(
+      `Packhouse rejects cannot exceed processed kg for ${entry.variety}`
+    );
+  }
 }
 
   /* const resolvedPackhouseRejects =
@@ -524,7 +643,7 @@ if (packhouse) {
 
       }
 
-      if (packhouse && packhouse.processedKg > 0) {
+      /* if (packhouse && packhouse.processedKg > 0) {
         const load =
           await tx.packhouseLoad.create({
             data: {
@@ -551,7 +670,65 @@ if (packhouse) {
           });
         }
 
+      } */
+
+        for (
+  const entry of packhouseEntries
+) {
+  if (entry.processedKg <= 0) {
+    continue;
+  }
+
+  const resolvedRejects =
+    resolveRejectBreakdown(
+      entry.rejects,
+      entry.rejectKg,
+      `Packhouse reject (${entry.variety})`
+    );
+
+  const load =
+    await tx.packhouseLoad.create({
+      data: {
+        date,
+        variety:
+          entry.variety,
+        processedKg:
+          entry.processedKg,
+        notes:
+          entry.notes ?? null,
+        harvestId: null,
+      },
+    });
+
+  if (
+    resolvedRejects.length > 0
+  ) {
+    await tx.packhouseReject.createMany(
+      {
+        data:
+          resolvedRejects.map(
+            reject => ({
+              date,
+              variety:
+                entry.variety,
+              rejectType:
+                reject.rejectType,
+              inputMode:
+                reject.inputMode,
+              inputValue:
+                reject.inputValue,
+              rejectKg:
+                reject.rejectKg,
+              rejectPct:
+                reject.rejectPct,
+              packhouseLoadId:
+                load.id,
+            })
+          ),
       }
+    );
+  }
+}
 
       await createAuditLog({
   userId: session.userId,
@@ -579,8 +756,10 @@ if (packhouse) {
     );
 
     throw new Error(
-      'Failed to save harvest record. No changes were made.'
-    );
+    error instanceof Error
+      ? error.message
+      : 'Failed to save harvest record. No changes were made.'
+  );
   }
 
   revalidatePath('/harvest');
