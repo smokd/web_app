@@ -250,7 +250,7 @@ export async function createHarvestRecord(formData: FormData) {
   );
 
   const totalFieldRejectPct = fieldRejects.reduce(
-    (sum, reject) => sum + reject.rejectKg,
+    (sum, reject) => sum + reject.rejectPct,
     0
   );
 
@@ -262,6 +262,13 @@ export async function createHarvestRecord(formData: FormData) {
       'Field rejects cannot exceed harvested kg'
     );
   }
+  if (totalFieldRejectPct > 100) {
+  throw new Error(
+    'Total field reject percentage cannot exceed 100%'
+  );
+}
+
+
 
   if (packhouse) {
     if (packhouse.processedKg > harvestedKg) {
@@ -320,15 +327,20 @@ export async function createHarvestRecord(formData: FormData) {
 
       if (fieldRejects.length > 0) {
         await tx.fieldReject.createMany({
-          data: fieldRejects.map((reject) => ({
-            date,
-            variety,
-            rejectKg: reject.rejectKg,
-            rejectType: reject.rejectType,
-            rejectPct: calcRejectPct(harvestedKg,reject.rejectKg),
-            harvestId: harvest.id,
-          })),
-        });
+  data: fieldRejects.map((reject) => {
+    const rejectKg =
+      (harvestedKg * reject.rejectPct) / 100;
+
+    return {
+      date,
+      variety,
+      rejectType: reject.rejectType,
+      rejectKg,
+      rejectPct: reject.rejectPct,
+      harvestId: harvest.id,
+    };
+  }),
+});
       }
 
       if (packhouse && packhouse.processedKg > 0) {
@@ -465,7 +477,7 @@ export async function updateHarvestRecord(
   const fieldRejectPct =
     calcRejectPct(
       harvestedKg,
-      fieldRejectsKg
+      totalFieldRejectKg
     );
 
      const existing =
