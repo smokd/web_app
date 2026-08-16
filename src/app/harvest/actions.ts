@@ -59,6 +59,71 @@ function parseRejectInputMode(
 }
 
 
+function resolveRejectBreakdown(
+  rejects: Array<{
+    rejectType: string;
+    inputMode: RejectInputMode;
+    inputValue: number;
+  }>,
+  totalRejectKg: number,
+  fieldName: string
+) {
+  const kgEntries = rejects.filter(
+    reject => reject.inputMode === 'KG'
+  );
+
+  const percentEntries = rejects.filter(
+    reject => reject.inputMode === 'PERCENT'
+  );
+
+  const fixedKg = kgEntries.reduce(
+    (sum, reject) => sum + reject.inputValue,
+    0
+  );
+
+  if (fixedKg > totalRejectKg + 0.01) {
+    throw new Error(
+      `${fieldName} KG breakdown exceeds total reject kg`
+    );
+  }
+
+  const remainingKg = Math.max(
+    0,
+    totalRejectKg - fixedKg
+  );
+
+  const percentTotal = percentEntries.reduce(
+    (sum, reject) => sum + reject.inputValue,
+    0
+  );
+
+  if (
+    percentEntries.length > 0 &&
+    Math.abs(percentTotal - 100) > 0.1
+  ) {
+    throw new Error(
+      `${fieldName} percentage breakdown must total 100%`
+    );
+  }
+
+  return rejects.map(reject => {
+    const rejectKg =
+      reject.inputMode === 'KG'
+        ? reject.inputValue
+        : remainingKg *
+          (reject.inputValue / 100);
+
+    return {
+      ...reject,
+      rejectKg,
+      rejectPct:
+        totalRejectKg > 0
+          ? (rejectKg / totalRejectKg) * 100
+          : 0,
+    };
+  });
+}
+
 function parseFiniteNumber(
   value: FormDataEntryValue | null,
   fieldName: string,
@@ -244,7 +309,6 @@ function parsePackhouse(
 
       return {
         rejectType,
-        rejectKg,
         inputMode,
         inputValue,
       };
@@ -345,10 +409,6 @@ export async function createHarvestRecord(formData: FormData) {
   );
 }
 
-  const fieldRejectPct = calcRejectPct(
-  harvestedKg,
-  totalFieldRejectKg
-);
 
 const resolvedFieldRejects =
   resolveRejectBreakdown(
@@ -358,18 +418,8 @@ const resolvedFieldRejects =
   );
 
 
-  if (packhouse) {
-    /* if (packhouse.processedKg > harvestedKg) {
-      throw new Error(
-        'Packhouse processed kg cannot exceed harvested kg'
-      ); */
-    }
+   /* if (packhouse) {
 
-    /* const totalPackhouseRejectKg =
-      packhouse.rejects.reduce(
-        (sum, reject) => sum + reject.rejectKg,
-        0
-      ); */
 
       const totalPackhouseRejectKg = parseFiniteNumber(
   formData.get('packhouseRejectsKg'),
@@ -385,14 +435,44 @@ const resolvedFieldRejects =
         'Packhouse rejects cannot exceed processed kg'
       );
     }
+  }  */
+
+    let totalPackhouseRejectKg = 0;
+
+let resolvedPackhouseRejects: ReturnType<
+  typeof resolveRejectBreakdown
+> = [];
+
+if (packhouse) {
+  totalPackhouseRejectKg = parseFiniteNumber(
+    formData.get('packhouseRejectsKg'),
+    'Packhouse rejects kg',
+    0
+  );
+
+  if (
+    totalPackhouseRejectKg >
+    packhouse.processedKg
+  ) {
+    throw new Error(
+      'Packhouse rejects cannot exceed processed kg'
+    );
   }
 
-  const resolvedPackhouseRejects =
+  resolvedPackhouseRejects =
+    resolveRejectBreakdown(
+      packhouse.rejects,
+      totalPackhouseRejectKg,
+      'Packhouse reject'
+    );
+}
+
+  /* const resolvedPackhouseRejects =
   resolveRejectBreakdown(
     packhouse.rejects,
     totalPackhouseRejectKg,
     'Packhouse reject'
-  );
+  ); */
 
   const fieldRejectPct =
     calcRejectPct(
@@ -458,18 +538,16 @@ const resolvedFieldRejects =
 
         if (packhouse.rejects.length > 0) {
           await tx.packhouseReject.createMany({
-            data: packhouse.rejects.map((reject) => ({
-              date,
-              variety,
-              rejectType: reject.rejectType,
-              rejectKg: reject.rejectKg,
-              rejectPct:
-                calcRejectPct(
-                  load.processedKg,
-                  reject.rejectKg
-                ),
-              packhouseLoadId: load.id,
-            })),
+            data: resolvedPackhouseRejects.map((reject) => ({
+                date,
+                variety,
+                rejectType: reject.rejectType,
+                inputMode: reject.inputMode,
+                inputValue: reject.inputValue,
+                rejectKg: reject.rejectKg,
+                rejectPct: reject.rejectPct,
+                packhouseLoadId: load.id,
+              })),
           });
         }
 

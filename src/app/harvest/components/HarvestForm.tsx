@@ -20,7 +20,8 @@ type WeatherOpt = {
 
 type RejectRow = {
   rejectType: string;
-  rejectKg: number;
+  inputMode: 'KG' | 'PERCENT';
+  inputValue: number;
 };
 
 export default function HarvestForm({
@@ -45,9 +46,19 @@ export default function HarvestForm({
 
   const [fieldRejects, setFieldRejects] = useState<RejectRow[]>([]);
 
-  const [processedKg, setProcessedKg] = useState(0);
+  /* const [processedKg, setProcessedKg] = useState(0);
 
-  const [packhouseRejects, setPackhouseRejects] = useState<RejectRow[]>([]);
+  const [packhouseRejects, setPackhouseRejects] = useState<RejectRow[]>([]); */
+
+  type PackhouseEntry = {
+  variety: string;
+  processedKg: number;
+  rejectKg: number;
+  rejects: RejectRow[];
+};
+
+const [packhouseEntries, setPackhouseEntries] =
+  useState<PackhouseEntry[]>([]);
 
   const [weather, setWeather] = useState<WeatherData>({
     condition: '',
@@ -73,10 +84,10 @@ export default function HarvestForm({
       ? (totalFieldRejectKg / harvestedNum) * 100
       : 0;
 
-  const processedPct =
+  /* const processedPct =
     harvestedNum > 0
       ? (processedKg / harvestedNum) * 100
-      : 0;
+      : 0; */
 
   /* =========================================
      DATE
@@ -109,12 +120,12 @@ export default function HarvestForm({
       return;
     }
 
-    if (processedKg > harvested) {
+    /* if (processedKg > harvested) {
       setMessage(
         'Processed quantity cannot exceed harvested quantity.'
       );
       return;
-    }
+    } */
 
     /*
      * Convert field reject KG to percentage
@@ -132,7 +143,8 @@ export default function HarvestForm({
 */
     const fieldRejectsData = fieldRejects.map((row) => ({
   rejectType: row.rejectType,
-  rejectKg: Number(row.rejectKg) || 0,
+  inputMode: row.inputMode,
+  inputValue: Number(row.inputValue) || 0,
 }));
 
     formData.set(
@@ -141,12 +153,11 @@ export default function HarvestForm({
     );
 
     formData.set(
-      'packhouse',
-      JSON.stringify({
-        processedKg,
-        rejects: packhouseRejects,
-      })
-    );
+  'packhouse',
+  JSON.stringify({
+    entries: packhouseEntries,
+  })
+);
 
     formData.set('weather', weather.condition);
     formData.set(
@@ -182,8 +193,9 @@ export default function HarvestForm({
 
         setFieldRejects([]);
 
-        setProcessedKg(0);
-        setPackhouseRejects([]);
+        /* setProcessedKg(0);
+        setPackhouseRejects([]); */
+        setPackhouseEntries([]);
 
         setWeather({
           condition: '',
@@ -451,19 +463,24 @@ export default function HarvestForm({
             <span>Processed</span>
 
             <strong>
-              {processedKg.toFixed(2)} kg
-            </strong>
+        {packhouseEntries
+        .reduce(
+        (sum, entry) =>
+        sum + (Number(entry.processedKg) || 0),
+      0
+    )
+    .toFixed(2)} kg
+</strong>
 
           </div>
 
         </div>
 
         <PackhouseSection
-          processedKg={processedKg}
-          onProcessedKgChange={setProcessedKg}
-          rejects={packhouseRejects}
-          onRejectsChange={setPackhouseRejects}
-        />
+          entries={packhouseEntries}
+          onChange={setPackhouseEntries}
+          varieties={varieties}
+/>
 
       </section>
 
