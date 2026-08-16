@@ -120,7 +120,7 @@ export default function HarvestForm({
      * Convert field reject KG to percentage
      * before sending to the server.
      */
-    const fieldRejectsPct = fieldRejects.map((row) => ({
+    /*const fieldRejectsPct = fieldRejects.map((row) => ({
       rejectType: row.rejectType,
       rejectPct:
         harvested > 0
@@ -129,10 +129,15 @@ export default function HarvestForm({
             ) / 100
           : 0,
     }));
+*/
+    const fieldRejectsData = fieldRejects.map((row) => ({
+  rejectType: row.rejectType,
+  rejectKg: Number(row.rejectKg) || 0,
+}));
 
     formData.set(
       'fieldRejects',
-      JSON.stringify(fieldRejectsPct)
+      JSON.stringify(fieldRejectsData)
     );
 
     formData.set(

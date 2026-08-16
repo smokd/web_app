@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { updateHarvestRecord, deleteHarvestRecord } from '../actions.ts';
 import {Fragment} from 'react';
 
-type FieldReject = { id: number; rejectType: string; rejectPct: number };
+type FieldReject = { id: number; rejectType: string; rejectPct: number; rejectKg: number };
 type PackhouseReject = { id: number; rejectType: string; rejectKg: number; rejectPct: number };
 type PackhouseLoad = { id: number; processedKg: number; rejects: PackhouseReject[] };
 
@@ -208,7 +208,12 @@ export default function HarvestTable({
                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
                               {record.fieldRejects.map((fr) => (
                                 <span key={fr.id} style={{ fontSize: '0.8rem', background: '#fff3e0', padding: '0.15rem 0.4rem', borderRadius: 4 }}>
-                                  {fr.rejectType}: {fmt2(fr.rejectPct)}%
+                                  {fr.rejectType}:{' '}
+{fmt2(
+  record.harvestedKg > 0
+    ? (fr.rejectKg / record.harvestedKg) * 100
+    : 0
+)}%
                                 </span>
                               ))}
                             </div>
