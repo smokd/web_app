@@ -239,16 +239,18 @@ export function FieldRejectTrendChart({ data }) {
     const weekKey = weekStart.toISOString().split('T')[0];
 
     if (!acc[weekKey]) {
-      acc[weekKey] = {
-        weekStart,
-        totalPct: 0,
-        count: 0,
-      };
-    }
+  acc[weekKey] = {
+    weekStart,
+    harvestedKg: 0,
+    fieldRejectsKg: 0,
+  };
+}
 
-    const pct = Number(item.fieldRejectPct) ?? 0;
-    acc[weekKey].totalPct += pct;
-    acc[weekKey].count++;
+acc[weekKey].harvestedKg +=
+  Number(item.harvestedKg) || 0;
+
+acc[weekKey].fieldRejectsKg +=
+  Number(item.fieldRejectsKg) || 0;
 
     return acc;
   }, {});
@@ -256,7 +258,8 @@ export function FieldRejectTrendChart({ data }) {
   const chartData = Object.values(weeklyData)
     .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime())
     .map((week) => {
-      const avgPct = week.count > 0 ? (week.totalPct / week.count) : 0;
+      const weightedPct =week.harvestedKg > 0? (week.fieldRejectsKg /week.harvestedKg) *100: 0;
+
       const weekStart = new Date(week.weekStart);
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
@@ -269,7 +272,7 @@ export function FieldRejectTrendChart({ data }) {
 
       return {
         date: `${formatDate(weekStart)}–${formatDate(weekEnd)}`,
-        pct: avgPct,
+        pct: weightedPct,
       };
     });
 

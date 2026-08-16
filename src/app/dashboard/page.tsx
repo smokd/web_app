@@ -123,18 +123,26 @@ export default async function DashboardPage() {
    * FIELD REJECT TREND DATA
    * ==========================================
    */
-const weightedHarvestData = harvestData.map((harvest) => {
-  const harvestedKg = Number(harvest.harvestedKg || 0);
-  const fieldRejectsKg = Number(harvest.fieldRejectsKg || 0);
-
-  return {
-    ...harvest,
+  /*
+  const weightedHarvestData = Object.values(weeklyFieldRejects)
+  .sort(
+    (a, b) =>
+      a.weekStart.getTime() -
+      b.weekStart.getTime()
+  )
+  .map((week) => ({
+    date: week.weekStart,
+    harvestedKg: week.harvestedKg,
+    fieldRejectsKg: week.fieldRejectsKg,
     fieldRejectPct:
-      harvestedKg > 0
-        ? (fieldRejectsKg / harvestedKg) * 100
+      week.harvestedKg > 0
+        ? (week.fieldRejectsKg / week.harvestedKg) * 100
         : 0,
-  };
-});
+    variety: {
+      name: 'All varieties',
+    },
+  }));
+  */
 
 
   /*
@@ -209,13 +217,11 @@ const weightedHarvestData = harvestData.map((harvest) => {
         100
       : 0;
 
-  const totalPackhouseProcessedKg =
-  packhouseLoads.reduce(
-    (sum, load) =>
-      sum +
-      Number(load.processedKg || 0),
-    0
-  );
+ const totalPackhouseProcessedKg = packhouseLoads.reduce(
+  (sum, load) =>
+    sum + Number(load.processedKg || 0),
+  0
+);
 
 const totalPackhouseRejectKg =
   packhouseLoads.reduce(
@@ -338,7 +344,7 @@ const rejectReasonData = groupedRejects.map((item) => ({
           <span>Processed</span>
 
           <strong>
-            {totalProcessedKg.toLocaleString()} kg
+            {totalPackhouseProcessedKg.toLocaleString()} kg
           </strong>
 
           <small>
@@ -426,7 +432,7 @@ const rejectReasonData = groupedRejects.map((item) => ({
 
           <div className="dashboard-chart">
             <FieldRejectTrendChart
-              data={weightedHarvestData}
+              data={harvestData}
             />
           </div>
 
