@@ -1,35 +1,31 @@
-'use client';
+"use client";
 
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-} from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 
 type Harvest = {
   id: number;
   date: string;
   variety: string;
   harvestedKg: number;
-  fieldRejectsKg?: number;
-  fieldRejectPct: number;
+  fieldRejectsKg?: number | null;
+  fieldRejectPct?: number | null;
 
-  fieldRejects: Array<{
+  fieldRejects?: Array<{
     rejectType: string;
-    rejectKg?: number;
-    rejectPct: number;
-  }>;
+    rejectKg?: number | null;
+    rejectPct?: number | null;
+  }> | null;
 
-  packhouseLoad?: {
+  packhouseLoad?: Array<{
+    id: number;
     processedKg: number;
-    rejects: Array<{
+    variety: string;
+    rejects?: Array<{
       rejectType: string;
-      rejectKg: number;
-      rejectPct: number;
-    }>;
-  } | null;
+      rejectKg?: number | null;
+      rejectPct?: number | null;
+    }> | null;
+  }> | null;
 };
 
 type Props = {
@@ -42,74 +38,74 @@ const styles = StyleSheet.create({
   page: {
     padding: 30,
     fontSize: 9,
-    fontFamily: 'Helvetica',
+    fontFamily: "Helvetica",
   },
 
   header: {
     marginBottom: 18,
-    borderBottom: '2px solid #166534',
+    borderBottom: "2px solid #166534",
     paddingBottom: 10,
   },
 
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#166534',
+    fontWeight: "bold",
+    color: "#166534",
   },
 
   subtitle: {
     marginTop: 5,
-    color: '#555',
+    color: "#555",
     fontSize: 10,
   },
 
   sectionTitle: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
     marginTop: 18,
-    color: '#166534',
+    color: "#166534",
   },
 
   kpiGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
 
   kpi: {
-    width: '31%',
-    border: '1px solid #ddd',
+    width: "31%",
+    border: "1px solid #ddd",
     borderRadius: 5,
     padding: 8,
   },
 
   kpiLabel: {
     fontSize: 8,
-    color: '#666',
+    color: "#666",
   },
 
   kpiValue: {
     marginTop: 4,
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 
   table: {
-    width: '100%',
-    border: '1px solid #ddd',
+    width: "100%",
+    border: "1px solid #ddd",
   },
 
   tableRow: {
-    flexDirection: 'row',
-    borderBottom: '1px solid #ddd',
+    flexDirection: "row",
+    borderBottom: "1px solid #ddd",
     minHeight: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
 
   tableHeader: {
-    backgroundColor: '#f0fdf4',
-    fontWeight: 'bold',
+    backgroundColor: "#f0fdf4",
+    fontWeight: "bold",
   },
 
   cell: {
@@ -117,26 +113,26 @@ const styles = StyleSheet.create({
   },
 
   variety: {
-    width: '20%',
+    width: "20%",
   },
 
   number: {
-    width: '16%',
-    textAlign: 'right',
+    width: "16%",
+    textAlign: "right",
   },
 
   smallNumber: {
-    width: '12%',
-    textAlign: 'right',
+    width: "12%",
+    textAlign: "right",
   },
 
   footer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     left: 30,
     right: 30,
-    textAlign: 'center',
-    color: '#777',
+    textAlign: "center",
+    color: "#777",
     fontSize: 7,
   },
 });
@@ -145,60 +141,70 @@ function round(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-export default function WeeklyReportPDF({
-  data,
-  weekStart,
-  weekEnd,
-}: Props) {
-  const totalHarvested = data.reduce(
-    (sum, h) => sum + Number(h.harvestedKg || 0),
-    0
-  );
+function num(value: unknown): number {
+  const result = Number(value);
+  return Number.isFinite(result) ? result : 0;
+}
 
-  const totalFieldRejects = data.reduce((sum, h) => {
-    if (h.fieldRejectsKg != null) {
-      return sum + Number(h.fieldRejectsKg || 0);
+function getLoads(harvest: Harvest) {
+  return Array.isArray(harvest.packhouseLoad) ? harvest.packhouseLoad : [];
+}
+
+function getFieldRejectKg(harvest: Harvest): number {
+  if (harvest.fieldRejectsKg != null) {
+    return num(harvest.fieldRejectsKg);
+  }
+
+  const rejects = Array.isArray(harvest.fieldRejects)
+    ? harvest.fieldRejects
+    : [];
+
+  return rejects.reduce((sum, reject) => {
+    if (reject.rejectKg != null) {
+      return sum + num(reject.rejectKg);
     }
 
-    return (
-      sum +
-      h.fieldRejects.reduce((s, r) => {
-        if (r.rejectKg != null) {
-          return s + Number(r.rejectKg || 0);
-        }
+    return sum + (num(harvest.harvestedKg) * num(reject.rejectPct)) / 100;
+  }, 0);
+}
 
-        return (
-          s +
-          (Number(h.harvestedKg || 0) * Number(r.rejectPct || 0)) / 100
-        );
-      }, 0)
+function getProcessedKg(harvest: Harvest): number {
+  return getLoads(harvest).reduce(
+    (sum, load) => sum + num(load.processedKg),
+    0,
+  );
+}
+
+function getPackhouseRejectKg(harvest: Harvest): number {
+  return getLoads(harvest).reduce((loadSum, load) => {
+    const rejects = Array.isArray(load.rejects) ? load.rejects : [];
+
+    return (
+      loadSum + rejects.reduce((sum, reject) => sum + num(reject.rejectKg), 0)
     );
   }, 0);
+}
 
-  const totalProcessed = data.reduce(
-    (sum, h) => sum + Number(h.packhouseLoad?.processedKg || 0),
-    0
+export default function WeeklyReportPDF({ data, weekStart, weekEnd }: Props) {
+  const totalHarvested = data.reduce((sum, h) => sum + num(h.harvestedKg), 0);
+
+  const totalFieldRejects = data.reduce(
+    (sum, h) => sum + getFieldRejectKg(h),
+    0,
   );
 
+  const totalProcessed = data.reduce((sum, h) => sum + getProcessedKg(h), 0);
+
   const totalPackhouseRejects = data.reduce(
-    (sum, h) =>
-      sum +
-      (h.packhouseLoad?.rejects.reduce(
-        (s, r) => s + Number(r.rejectKg || 0),
-        0
-      ) || 0),
-    0
+    (sum, h) => sum + getPackhouseRejectKg(h),
+    0,
   );
 
   const fieldRejectPct =
-    totalHarvested > 0
-      ? (totalFieldRejects / totalHarvested) * 100
-      : 0;
+    totalHarvested > 0 ? (totalFieldRejects / totalHarvested) * 100 : 0;
 
   const packhouseRejectPct =
-    totalProcessed > 0
-      ? (totalPackhouseRejects / totalProcessed) * 100
-      : 0;
+    totalProcessed > 0 ? (totalPackhouseRejects / totalProcessed) * 100 : 0;
 
   const varietyMap = new Map<
     string,
@@ -218,26 +224,38 @@ export default function WeeklyReportPDF({
       packhouseRejects: 0,
     };
 
-    current.harvested += Number(h.harvestedKg || 0);
+    /* current.harvested += Number(h.harvestedKg || 0);
 
     current.fieldRejects += Number(
       h.fieldRejectsKg ||
         h.fieldRejects.reduce(
           (s, r) =>
-            s +
-            (Number(h.harvestedKg || 0) *
-              Number(r.rejectPct || 0)) /
-              100,
-          0
-        )
+            s + (Number(h.harvestedKg || 0) * Number(r.rejectPct || 0)) / 100,
+          0,
+        ),
     );
 
-    current.processed += Number(h.packhouseLoad?.processedKg || 0);
+    current.processed += Number(h.packhouseLoad?.processedKg || 0); */
+
+    current.harvested += num(h.harvestedKg);
+
+    current.fieldRejects += getFieldRejectKg(h);
+
+    current.processed += getProcessedKg(h);
+
+    current.packhouseRejects += getPackhouseRejectKg(h);
 
     current.packhouseRejects +=
-      h.packhouseLoad?.rejects.reduce(
-        (s, r) => s + Number(r.rejectKg || 0),
-        0
+      h.packhouseLoad?.reduce(
+        (loadSum, load) =>
+          loadSum +
+          (Array.isArray(load.rejects)
+            ? load.rejects.reduce(
+                (rejectSum, reject) => rejectSum + Number(reject.rejectKg || 0),
+                0,
+              )
+            : 0),
+        0,
       ) || 0;
 
     varietyMap.set(h.variety, current);
@@ -277,9 +295,7 @@ export default function WeeklyReportPDF({
 
           <View style={styles.kpi}>
             <Text style={styles.kpiLabel}>Field Reject Rate</Text>
-            <Text style={styles.kpiValue}>
-              {fieldRejectPct.toFixed(2)}%
-            </Text>
+            <Text style={styles.kpiValue}>{fieldRejectPct.toFixed(2)}%</Text>
           </View>
 
           <View style={styles.kpi}>
@@ -304,39 +320,23 @@ export default function WeeklyReportPDF({
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>
-          Performance by Variety
-        </Text>
+        <Text style={styles.sectionTitle}>Performance by Variety</Text>
 
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHeader]}>
-            <Text style={[styles.cell, styles.variety]}>
-              Variety
-            </Text>
+            <Text style={[styles.cell, styles.variety]}>Variety</Text>
 
-            <Text style={[styles.cell, styles.number]}>
-              Harvested kg
-            </Text>
+            <Text style={[styles.cell, styles.number]}>Harvested kg</Text>
 
-            <Text style={[styles.cell, styles.number]}>
-              Field Reject kg
-            </Text>
+            <Text style={[styles.cell, styles.number]}>Field Reject kg</Text>
 
-            <Text style={[styles.cell, styles.smallNumber]}>
-              Field %
-            </Text>
+            <Text style={[styles.cell, styles.smallNumber]}>Field %</Text>
 
-            <Text style={[styles.cell, styles.number]}>
-              Processed kg
-            </Text>
+            <Text style={[styles.cell, styles.number]}>Processed kg</Text>
 
-            <Text style={[styles.cell, styles.number]}>
-              Pack Reject kg
-            </Text>
+            <Text style={[styles.cell, styles.number]}>Pack Reject kg</Text>
 
-            <Text style={[styles.cell, styles.smallNumber]}>
-              Pack %
-            </Text>
+            <Text style={[styles.cell, styles.smallNumber]}>Pack %</Text>
           </View>
 
           {varieties.map(([variety, values]) => {
@@ -351,13 +351,8 @@ export default function WeeklyReportPDF({
                 : 0;
 
             return (
-              <View
-                key={variety}
-                style={styles.tableRow}
-              >
-                <Text style={[styles.cell, styles.variety]}>
-                  {variety}
-                </Text>
+              <View key={variety} style={styles.tableRow}>
+                <Text style={[styles.cell, styles.variety]}>{variety}</Text>
 
                 <Text style={[styles.cell, styles.number]}>
                   {round(values.harvested).toLocaleString()}
@@ -387,128 +382,63 @@ export default function WeeklyReportPDF({
           })}
         </View>
 
-        <Text style={styles.sectionTitle}>
-          Daily Harvest Summary
-        </Text>
+        <Text style={styles.sectionTitle}>Daily Harvest Summary</Text>
 
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHeader]}>
-            <Text style={[styles.cell, styles.variety]}>
-              Date
-            </Text>
+            <Text style={[styles.cell, styles.variety]}>Date</Text>
 
-            <Text style={[styles.cell, styles.number]}>
-              Harvested kg
-            </Text>
+            <Text style={[styles.cell, styles.number]}>Harvested kg</Text>
 
-            <Text style={[styles.cell, styles.number]}>
-              Field Reject kg
-            </Text>
+            <Text style={[styles.cell, styles.number]}>Field Reject kg</Text>
 
-            <Text style={[styles.cell, styles.number]}>
-              Processed kg
-            </Text>
+            <Text style={[styles.cell, styles.number]}>Processed kg</Text>
 
-            <Text style={[styles.cell, styles.number]}>
-              Pack Reject kg
-            </Text>
+            <Text style={[styles.cell, styles.number]}>Pack Reject kg</Text>
           </View>
 
-          {Array.from(
-            new Set(data.map((h) => h.date))
-          )
+          {Array.from(new Set(data.map((h) => h.date)))
             .sort()
             .map((date) => {
-              const rows = data.filter(
-                (h) => h.date === date
-              );
+              const rows = data.filter((h) => h.date === date);
 
               const harvested = rows.reduce(
                 (s, h) => s + Number(h.harvestedKg || 0),
-                0
+                0,
               );
 
               const fieldRejects = rows.reduce(
-                (s, h) =>
-                  s +
-                  Number(
-                    h.fieldRejectsKg ||
-                      h.fieldRejects.reduce(
-                        (x, r) =>
-                          x +
-                          (Number(h.harvestedKg || 0) *
-                            Number(r.rejectPct || 0)) /
-                            100,
-                        0
-                      )
-                  ),
-                0
+                (sum, h) => sum + getFieldRejectKg(h),
+                0,
               );
 
               const processed = rows.reduce(
-                (s, h) =>
-                  s + Number(h.packhouseLoad?.processedKg || 0),
-                0
+                (sum, h) => sum + getProcessedKg(h),
+                0,
               );
 
               const rejects = rows.reduce(
-                (s, h) =>
-                  s +
-                  (h.packhouseLoad?.rejects.reduce(
-                    (x, r) =>
-                      x + Number(r.rejectKg || 0),
-                    0
-                  ) || 0),
-                0
+                (sum, h) => sum + getPackhouseRejectKg(h),
+                0,
               );
 
               return (
-                <View
-                  key={date}
-                  style={styles.tableRow}
-                >
-                  <Text
-                    style={[
-                      styles.cell,
-                      styles.variety,
-                    ]}
-                  >
-                    {date}
-                  </Text>
+                <View key={date} style={styles.tableRow}>
+                  <Text style={[styles.cell, styles.variety]}>{date}</Text>
 
-                  <Text
-                    style={[
-                      styles.cell,
-                      styles.number,
-                    ]}
-                  >
+                  <Text style={[styles.cell, styles.number]}>
                     {round(harvested).toLocaleString()}
                   </Text>
 
-                  <Text
-                    style={[
-                      styles.cell,
-                      styles.number,
-                    ]}
-                  >
+                  <Text style={[styles.cell, styles.number]}>
                     {round(fieldRejects).toLocaleString()}
                   </Text>
 
-                  <Text
-                    style={[
-                      styles.cell,
-                      styles.number,
-                    ]}
-                  >
+                  <Text style={[styles.cell, styles.number]}>
                     {round(processed).toLocaleString()}
                   </Text>
 
-                  <Text
-                    style={[
-                      styles.cell,
-                      styles.number,
-                    ]}
-                  >
+                  <Text style={[styles.cell, styles.number]}>
                     {round(rejects).toLocaleString()}
                   </Text>
                 </View>
