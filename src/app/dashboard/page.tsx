@@ -117,6 +117,26 @@ export default async function DashboardPage() {
     },
   }));
 
+
+/*
+   * ==========================================
+   * FIELD REJECT TREND DATA
+   * ==========================================
+   */
+const weightedHarvestData = harvestData.map((harvest) => {
+  const harvestedKg = Number(harvest.harvestedKg || 0);
+  const fieldRejectsKg = Number(harvest.fieldRejectsKg || 0);
+
+  return {
+    ...harvest,
+    fieldRejectPct:
+      harvestedKg > 0
+        ? (fieldRejectsKg / harvestedKg) * 100
+        : 0,
+  };
+});
+
+
   /*
    * ==========================================
    * FORMAT PACKHOUSE DATA
@@ -231,7 +251,7 @@ const packhouseRejectPct =
 
 /*
    * ==========================================
-   * REJECTREASONS DATA
+   * REJECT REASONS DATA
    * ==========================================
    */
 
@@ -327,17 +347,37 @@ const rejectReasonData = groupedRejects.map((item) => ({
         </div>
 
         <div className="dashboard-kpi">
-  <span>Packhouse Rejects</span>
+          <span>Packhouse Rejects</span>
 
-  <strong>
-    {totalPackhouseRejectKg.toLocaleString()} kg
-  </strong>
+            <strong>
+              {totalPackhouseRejectKg.toLocaleString()} kg
+            </strong>
 
-  <small>
-    {packhouseRejectPct.toFixed(2)}%
-    of packhouse processed
-  </small>
-</div>
+            <small>
+              {packhouseRejectPct.toFixed(2)}%
+              of packhouse processed
+            </small>
+        </div>
+
+        <div className="dashboard-kpi">
+          <span>Imported</span>
+
+            <strong>
+              {totalPackhouseGoodKg.toLocaleString(
+                undefined,
+                {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }
+              )}{' '}
+              kg
+            </strong>
+
+            <small>
+              {packhouseRejectPct.toFixed(2)}%
+              of packhouse processed
+            </small>
+        </div>
 
       </section>
 
@@ -386,7 +426,7 @@ const rejectReasonData = groupedRejects.map((item) => ({
 
           <div className="dashboard-chart">
             <FieldRejectTrendChart
-              data={harvestData}
+              data={weightedHarvestData}
             />
           </div>
 
