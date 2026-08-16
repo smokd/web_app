@@ -52,6 +52,8 @@ model FieldReject {
   date       String
   variety    String
   rejectType String
+  inputMode  String   @default("KG")
+  inputValue Float    @default(0)
   rejectKg   Float    @default(0)
   rejectPct  Float    @default(0)
   harvestId  Int?
@@ -64,7 +66,7 @@ model PackhouseLoad {
   variety     String
   processedKg Float
   notes       String?
-  harvestId   Int?              @unique
+  harvestId   Int?
   harvest     Harvest?          @relation(fields: [harvestId], references: [id], onDelete: Cascade)
   rejects     PackhouseReject[]
 }
@@ -74,8 +76,10 @@ model PackhouseReject {
   date            String
   variety         String
   rejectType      String
-  rejectKg        Float
-  rejectPct       Float
+  inputMode       String         @default("KG")
+  inputValue      Float          @default(0)
+  rejectKg        Float          @default(0)
+  rejectPct       Float          @default(0)
   notes           String?
   packhouseLoadId Int?
   packhouseLoad   PackhouseLoad? @relation(fields: [packhouseLoadId], references: [id], onDelete: Cascade)

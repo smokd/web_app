@@ -5,14 +5,18 @@ import prisma from '@/lib/prisma';
 import { requireAuth, requireAdmin } from '@/lib/auth';
 import { createAuditLog } from '@/lib/audit';
 
+type RejectInputMode = 'KG' | 'PERCENT';
+
 type FieldRejectInput = {
   rejectType: string;
-  rejectKg: number;
+  inputMode: RejectInputMode;
+  inputValue: number;
 };
 
 type PackhouseRejectInput = {
   rejectType: string;
-  rejectKg: number;
+  inputMode: RejectInputMode;
+  inputValue: number;
 };
 
 type PackhouseInput = {
@@ -39,6 +43,21 @@ function calcRejectPct(
     ? Math.round(pct * 100) / 100
     : 0;
 }
+
+function parseRejectInputMode(
+  value: unknown
+): RejectInputMode {
+  const mode = String(value ?? 'KG')
+    .trim()
+    .toUpperCase();
+
+  if (mode !== 'KG' && mode !== 'PERCENT') {
+    throw new Error('Reject input mode must be KG or PERCENT');
+  }
+
+  return mode;
+}
+
 
 function parseFiniteNumber(
   value: FormDataEntryValue | null,
@@ -90,8 +109,12 @@ function parseFieldRejects(
       row.rejectType ?? ''
     ).trim();
 
-    const rejectKg = Number(
-      row.rejectKg
+    const inputMode = parseRejectInputMode(
+      row.inputMode
+    );
+
+    const inputValue = Number(
+      row.inputValue
     );
 
     if (!rejectType) {
@@ -101,17 +124,27 @@ function parseFieldRejects(
     }
 
     if (
-      !Number.isFinite(rejectKg) ||
-      rejectKg < 0
+      !Number.isFinite(inputValue) ||
+      inputValue < 0
     ) {
       throw new Error(
-        `Field reject kg is invalid at row ${index + 1}`
+        `Field reject value is invalid at row ${index + 1}`
+      );
+    }
+
+    if (
+      inputMode === 'PERCENT' &&
+      inputValue > 100
+    ) {
+      throw new Error(
+        `Field reject percentage cannot exceed 100% at row ${index + 1}`
       );
     }
 
     return {
       rejectType,
-      rejectKg,
+      inputMode,
+      inputValue,
     };
   });
 }
@@ -166,7 +199,17 @@ function parsePackhouse(
 
       const row = item as Record<string, unknown>;
 
-      const rejectType = String(row.rejectType ?? '').trim();
+      const rejectType = String(
+                row.rejectType ?? ''
+              ).trim();
+
+              const inputMode = parseRejectInputMode(
+                row.inputMode
+              );
+
+              const inputValue = Number(
+                row.inputValue
+              );
       const rejectKg = Number(row.rejectKg);
 
       if (!rejectType) {
@@ -175,15 +218,35 @@ function parsePackhouse(
         );
       }
 
-      if (!Number.isFinite(rejectKg) || rejectKg < 0) {
+      if (
+          !Number.isFinite(inputValue) ||
+          inputValue < 0
+        ) {
+          throw new Error(
+            `Packhouse reject value is invalid at row ${index + 1}`
+          );
+        }
+
+        if (
+          inputMode === 'PERCENT' &&
+          inputValue > 100
+        ) {
+          throw new Error(
+            `Packhouse reject percentage cannot exceed 100% at row ${index + 1}`
+          );
+        }
+
+      /* if (!Number.isFinite(rejectKg) || rejectKg < 0) {
         throw new Error(
           `Packhouse reject kg is invalid at row ${index + 1}`
         );
-      }
+      } */
 
       return {
         rejectType,
         rejectKg,
+        inputMode,
+        inputValue,
       };
     }
   );
@@ -194,6 +257,7 @@ function parsePackhouse(
     rejects,
   };
 }
+
 
 export async function createHarvestRecord(formData: FormData) {
   const session = await requireAuth();
@@ -258,16 +322,16 @@ export async function createHarvestRecord(formData: FormData) {
     formData.get('packhouse')
   );
 
-  const totalFieldRejectKg = fieldRejects.reduce(
-  (sum, reject) => sum + reject.rejectKg,
-  0
-);
+  const totalFieldRejectKg = parseFiniteNumber(
+    formData.get('fieldRejectsKg'),
+    'Field rejects kg',
+    0
+  );
 
   const totalFieldRejectPct = calcRejectPct(
   harvestedKg,
   totalFieldRejectKg
 );
-
 
 
   if (totalFieldRejectKg > harvestedKg) {
@@ -281,20 +345,37 @@ export async function createHarvestRecord(formData: FormData) {
   );
 }
 
+  const fieldRejectPct = calcRejectPct(
+  harvestedKg,
+  totalFieldRejectKg
+);
+
+const resolvedFieldRejects =
+  resolveRejectBreakdown(
+    fieldRejects,
+    totalFieldRejectKg,
+    'Field reject'
+  );
 
 
   if (packhouse) {
-    if (packhouse.processedKg > harvestedKg) {
+    /* if (packhouse.processedKg > harvestedKg) {
       throw new Error(
         'Packhouse processed kg cannot exceed harvested kg'
-      );
+      ); */
     }
 
-    const totalPackhouseRejectKg =
+    /* const totalPackhouseRejectKg =
       packhouse.rejects.reduce(
         (sum, reject) => sum + reject.rejectKg,
         0
-      );
+      ); */
+
+      const totalPackhouseRejectKg = parseFiniteNumber(
+  formData.get('packhouseRejectsKg'),
+  'Packhouse rejects kg',
+  0
+    );
 
     if (
       totalPackhouseRejectKg >
@@ -305,6 +386,13 @@ export async function createHarvestRecord(formData: FormData) {
       );
     }
   }
+
+  const resolvedPackhouseRejects =
+  resolveRejectBreakdown(
+    packhouse.rejects,
+    totalPackhouseRejectKg,
+    'Packhouse reject'
+  );
 
   const fieldRejectPct =
     calcRejectPct(
@@ -340,19 +428,20 @@ export async function createHarvestRecord(formData: FormData) {
       createdHarvestId = harvest.id;
 
       if (fieldRejects.length > 0) {
+
         await tx.fieldReject.createMany({
-  data: fieldRejects.map((reject) => ({
-  date,
-  variety,
-  rejectType: reject.rejectType,
-  rejectKg: reject.rejectKg,
-  rejectPct: calcRejectPct(
-    harvestedKg,
-    reject.rejectKg
-  ),
-  harvestId: harvest.id,
-})),
-});
+          data: resolvedFieldRejects.map((reject) => ({
+            date,
+            variety,
+            rejectType: reject.rejectType,
+            inputMode: reject.inputMode,
+            inputValue: reject.inputValue,
+            rejectKg: reject.rejectKg,
+            rejectPct: reject.rejectPct,
+            harvestId: harvest.id,
+          })),
+        });
+
       }
 
       if (packhouse && packhouse.processedKg > 0) {
