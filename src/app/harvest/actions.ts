@@ -333,6 +333,7 @@ export async function createHarvestRecord(formData: FormData) {
           weatherLat,
           weatherLon,
           weatherSource,
+          userId: session.userId,
         },
       });
 
