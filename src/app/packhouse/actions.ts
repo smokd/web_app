@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
+import { createAuditLog } from '@/lib/audit';
 
 type PackhouseReject = {
   rejectType: string;
@@ -93,7 +94,7 @@ function parseRejects(
 export async function createPackhouseLoad(
   formData: FormData
 ) {
-  await requireAuth();
+  const session = await requireAuth();
 
   const harvestId = Number(
     formData.get('harvestId')
@@ -162,9 +163,12 @@ if (processedKg > availableKg) {
     );
   }
 
+  let loadId: number;
   await prisma.$transaction(async (tx) => {
+
     const load =
       await tx.packhouseLoad.create({
+
         data: {
           date: harvest.date,
           variety: harvest.variety,
@@ -173,6 +177,7 @@ if (processedKg > availableKg) {
           harvestId: harvest.id,
         },
       });
+      loadId = load.id;
 
     if (rejects.length > 0) {
       await tx.packhouseReject.createMany({
@@ -190,6 +195,22 @@ if (processedKg > availableKg) {
       });
     }
   });
+
+  await createAuditLog({
+  userId: session.userId,
+  action: 'CREATE',
+  entity: 'PACKHOUSE_LOAD',
+  entityId: loadId,
+  description:
+    `Created packhouse load for harvest #${harvestId}`,
+  changes: {
+    harvestId,
+    processedKg,
+    totalRejectKg,
+    rejectCount:
+      rejects.length,
+  },
+});
 
   revalidatePath('/packhouse');
   revalidatePath('/harvest');

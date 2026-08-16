@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { requireAuth, requireAdmin } from '@/lib/auth';
+import { createAuditLog } from '@/lib/audit';
 
 type FieldRejectInput = {
   rejectType: string;
@@ -20,14 +21,23 @@ type PackhouseInput = {
   rejects: PackhouseRejectInput[];
 };
 
-function calcRejectPct(harvested: number, rejects: number) {
-  if (!Number.isFinite(harvested) || harvested <= 0) {
+function calcRejectPct(
+  harvested: number,
+  rejects: number
+) {
+  if (
+    !Number.isFinite(harvested) ||
+    harvested <= 0
+  ) {
     return 0;
   }
 
-  const pct = (rejects / harvested) * 100;
+  const pct =
+    rejects / harvested;
 
-  return Number.isFinite(pct) ? pct : 0;
+  return Number.isFinite(pct)
+    ? pct
+    : 0;
 }
 
 function parseFiniteNumber(
@@ -176,7 +186,7 @@ function parsePackhouse(
 }
 
 export async function createHarvestRecord(formData: FormData) {
-  await requireAuth();
+  const session = await requireAuth();
 
   const date = String(formData.get('date') || '').trim();
   const variety = String(formData.get('variety') || '').trim();
@@ -284,9 +294,12 @@ export async function createHarvestRecord(formData: FormData) {
       totalFieldRejectKg
     );
 
+  let createdHarvestId: number;
+
   try {
     await prisma.$transaction(async (tx) => {
       const harvest = await tx.harvest.create({
+
         data: {
           date,
           variety,
@@ -303,6 +316,10 @@ export async function createHarvestRecord(formData: FormData) {
           weatherSource,
         },
       });
+
+      createdHarvestId = harvest.id;
+
+
 
       if (fieldRejects.length > 0) {
         await tx.fieldReject.createMany({
@@ -344,6 +361,26 @@ export async function createHarvestRecord(formData: FormData) {
             })),
           });
         }
+
+        await createAuditLog({
+  userId: session.userId,
+  action: 'CREATE',
+  entity: 'HARVEST',
+  entityId: createdHarvestId!,
+  description:
+    `Created harvest record #${createdHarvestId}`,
+  changes: {
+    date,
+    variety,
+    harvestedKg,
+    fieldRejectsKg:
+      totalFieldRejectKg,
+    fieldRejectPct,
+    blocks,
+    supervisor,
+  },
+});
+
       }
     });
   } catch (error) {
@@ -368,7 +405,8 @@ export async function createHarvestRecord(formData: FormData) {
 export async function updateHarvestRecord(
   formData: FormData
 ) {
-  await requireAdmin();
+  const session = await requireAdmin();
+
 
   const id = Number(formData.get('id'));
 
@@ -432,6 +470,17 @@ export async function updateHarvestRecord(
       fieldRejectsKg
     );
 
+     const existing =
+  await prisma.harvest.findUnique({
+    where: { id },
+  });
+
+if (!existing) {
+  throw new Error(
+    'Harvest record not found'
+  );
+}
+
   await prisma.harvest.update({
     where: { id },
     data: {
@@ -447,6 +496,38 @@ export async function updateHarvestRecord(
     },
   });
 
+  await createAuditLog({
+  userId: session.userId,
+  action: 'UPDATE',
+  entity: 'HARVEST',
+  entityId: id,
+  description:
+    `Updated harvest record #${id}`,
+  changes: {
+    before: {
+      date: existing.date,
+      variety: existing.variety,
+      harvestedKg:
+        existing.harvestedKg,
+      fieldRejectsKg:
+        existing.fieldRejectsKg,
+      blocks:
+        existing.blocks,
+      supervisor:
+        existing.supervisor,
+    },
+
+    after: {
+      date,
+      variety,
+      harvestedKg,
+      fieldRejectsKg,
+      blocks,
+      supervisor,
+    },
+  },
+});
+
   revalidatePath('/harvest');
   revalidatePath('/dashboard');
 
@@ -455,10 +536,12 @@ export async function updateHarvestRecord(
   };
 }
 
+
+
 export async function deleteHarvestRecord(
   formData: FormData
 ) {
-  await requireAdmin();
+  const session = await requireAdmin();
 
   const id = Number(formData.get('id'));
 
@@ -468,9 +551,34 @@ export async function deleteHarvestRecord(
     );
   }
 
+  const existing =
+  await prisma.harvest.findUnique({
+    where: { id },
+  });
+
+if (!existing) {
+  throw new Error(
+    'Harvest record not found'
+  );
+}
   await prisma.harvest.delete({
     where: { id },
   });
+
+  await createAuditLog({
+  userId: session.userId,
+  action: 'DELETE',
+  entity: 'HARVEST',
+  entityId: id,
+  description: `Deleted harvest record #${id}`,
+  changes: {
+    date: existing.date,
+    variety: existing.variety,
+    harvestedKg: existing.harvestedKg,
+    fieldRejectsKg: existing.fieldRejectsKg,
+    blocks: existing.blocks,
+  },
+});
 
   revalidatePath('/harvest');
   revalidatePath('/dashboard');
@@ -479,3 +587,4 @@ export async function deleteHarvestRecord(
     success: true,
   };
 }
+

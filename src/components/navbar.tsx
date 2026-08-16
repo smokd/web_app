@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+
 const navItems = [
   {
     href: '/',
@@ -31,10 +32,24 @@ const navItems = [
     href: '/shelf-life',
     label: 'Shelf Life',
   },
+  {
+  href: '/audit',
+  label: 'Audit Trail',
+  adminOnly: true,
+},
 ];
 
-export default function Navbar() {
+type NavbarProps = {
+  role?: string;
+};
+
+export default function Navbar({role}) {
   const pathname = usePathname();
+  const visibleNavItems = navItems.filter(
+  (item) =>
+    !item.adminOnly ||
+    role === 'ADMIN'
+);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isActive = (item: (typeof navItems)[number]) => {
@@ -63,7 +78,7 @@ export default function Navbar() {
 
         {/* Desktop Navigation */}
         <div className="navbar-links desktop-nav">
-          {navItems
+          {visibleNavItems
             .filter((item) => item.href !== '/')
             .map((item) => (
               <Link
@@ -75,7 +90,16 @@ export default function Navbar() {
               >
                 {item.label}
               </Link>
+
+
             ))}
+
+            <a
+  href="/logout"
+  className="navbar-logout"
+>
+  Logout
+</a>
         </div>
 
         {/* Mobile Hamburger */}
@@ -95,7 +119,7 @@ export default function Navbar() {
       {/* Mobile Navigation */}
       {menuOpen && (
         <div className="mobile-nav">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -106,9 +130,19 @@ export default function Navbar() {
             >
               {item.label}
             </Link>
+
           ))}
+          <a
+  href="/logout"
+  className="navbar-logout"
+>
+  Logout
+</a>
         </div>
       )}
+
+
+
     </nav>
   );
 }

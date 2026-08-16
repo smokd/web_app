@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateHarvestRecord, deleteHarvestRecord } from '../actions.ts';
+import {Fragment} from 'react';
 
 type FieldReject = { id: number; rejectType: string; rejectPct: number };
 type PackhouseReject = { id: number; rejectType: string; rejectKg: number; rejectPct: number };
@@ -144,7 +145,7 @@ export default function HarvestTable({
                   isAdmin={isAdmin}
                 />
               ) : (
-                <>
+                <Fragment key={record.id}>
                   <tr key={record.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => toggleExpand(record.id)}>
                     <td style={{ padding: '0.6rem' }}>{record.variety}</td>
                     <td style={{ padding: '0.6rem', textAlign: 'right' }}>{fmt2(record.harvestedKg)}</td>
@@ -236,7 +237,7 @@ export default function HarvestTable({
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               )
             )}
           </tbody>

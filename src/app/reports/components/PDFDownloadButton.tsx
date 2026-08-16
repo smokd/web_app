@@ -1,8 +1,32 @@
 'use client';
 
 import { useState } from 'react';
-import { PDFDownloadLink } from '@react-pdf/renderer';
+import dynamic from 'next/dynamic';
 import WeeklyReportPDF from './WeeklyReportPDF';
+
+const PDFDownloadLink = dynamic(
+  () =>
+    import('@react-pdf/renderer').then(
+      (mod) => mod.PDFDownloadLink
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <span
+        style={{
+          display: 'inline-block',
+          padding: '0.6rem 1rem',
+          borderRadius: 6,
+          background: '#166534',
+          color: '#fff',
+          fontWeight: 600,
+        }}
+      >
+        Loading PDF...
+      </span>
+    ),
+  }
+);
 
 export default function PDFDownloadButton({
   data,

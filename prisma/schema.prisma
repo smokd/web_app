@@ -111,7 +111,23 @@ model User {
   role         String    @default("USER")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
   harvests     Harvest[]
+  auditLogs    AuditLog[]
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action     String
+  entity     String
+  entityId   String?
+  description String?
+  changes    String?
 }
 
 enum Role {
