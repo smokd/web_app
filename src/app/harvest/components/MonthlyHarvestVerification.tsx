@@ -656,12 +656,16 @@ export default function MonthlyHarvestVerification({
                         textAlign: 'right',
                       }}
                     >
-                      {record.packhouseLoad
-                        ? fmtKg(
-                            record.packhouseLoad
-                              .processedKg
-                          )
-                        : '—'}
+                      {record.packhouseLoad.length > 0
+  ? fmtKg(
+      record.packhouseLoad.reduce(
+        (sum, load) =>
+          sum +
+          (Number(load.processedKg) || 0),
+        0
+      )
+    )
+  : '—'}
                     </td>
 
                     <td

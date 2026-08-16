@@ -199,22 +199,19 @@ export default function HarvestTable({
         );
 
       const rejects =
-        record.packhouseLoad.reduce(
-          (sum, load) =>
-            sum +
-            load.rejects.reduce(
-              (
-                rejectSum,
-                reject
-              ) =>
-                rejectSum +
-                (Number(
-                  reject.rejectKg
-                ) || 0),
-              0
-            ),
-          0
-        );
+  record.packhouseLoad.reduce(
+    (sum, load) =>
+      sum +
+      (Array.isArray(load.rejects)
+        ? load.rejects.reduce(
+            (rejectSum, reject) =>
+              rejectSum +
+              (Number(reject.rejectKg) || 0),
+            0
+          )
+        : 0),
+    0
+  );
 
       return (
         fmt2(
@@ -285,41 +282,67 @@ export default function HarvestTable({
                           </div>
                         )}
 
-                        {record.packhouseLoad && (
-                          <div>
-                            <strong style={{ fontSize: '0.85rem' }}>Packhouse:</strong>{' '}
-                            {fmt2{record.packhouseLoad.map((load) => (
-  <div key={load.id}>
-    <strong>{load.variety}</strong>
-    <span>
-      {fmt2(load.processedKg)} kg
-    </span>
+                        {record.packhouseLoad.length > 0 ? (
+  <div>
+    <strong style={{ fontSize: '0.85rem' }}>
+      Packhouse:
+    </strong>
 
-    {load.rejects?.length > 0 && (
-      <div>
-        {load.rejects.map((reject) => (
-          <div key={reject.id}>
-            {reject.rejectType}:{" "}
-            {fmt2(reject.rejectKg)} kg
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+        marginTop: '0.4rem',
+      }}
+    >
+      {record.packhouseLoad.map((load) => (
+        <div
+          key={load.id}
+          style={{
+            padding: '0.5rem',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+          }}
+        >
+          <div>
+            <strong>{load.variety}</strong>{' '}
+            — {fmt2(load.processedKg)} kg processed
           </div>
-        ))}
-      </div>
-    )}
-  </div>
-))}} kg processed
-                            {record.packhouseLoad.rejects.length > 0 && (
-                              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-                                {record.packhouseLoad.rejects.map((pr) => (
-                                  <span key={pr.id} style={{ fontSize: '0.8rem', background: '#ffebee', padding: '0.15rem 0.4rem', borderRadius: 4 }}>
-                                    {pr.rejectType}: {fmt2(pr.rejectKg)} kg ({fmt2(pr.rejectPct)}%)
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
 
-                        {!record.packhouseLoad && record.fieldRejects.length === 0 && (
+          {load.rejects.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                gap: '0.5rem',
+                flexWrap: 'wrap',
+                marginTop: '0.25rem',
+              }}
+            >
+              {load.rejects.map((reject) => (
+                <span
+                  key={reject.id}
+                  style={{
+                    fontSize: '0.8rem',
+                    background: '#ffebee',
+                    padding: '0.15rem 0.4rem',
+                    borderRadius: 4,
+                  }}
+                >
+                  {reject.rejectType}:{' '}
+                  {fmt2(reject.rejectKg)} kg (
+                  {fmt2(reject.rejectPct)}%)
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+) : null}
+
+                        {record.packhouseLoad.length === 0 && record.fieldRejects.length === 0 && (
                           <p style={{ fontSize: '0.85rem', opacity: 0.6 }}>No additional details.</p>
                         )}
                       </td>
