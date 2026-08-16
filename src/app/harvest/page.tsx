@@ -3,13 +3,15 @@ import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 
+import MonthlyHarvestVerification from './components/MonthlyHarvestVerification';
+
 import HarvestForm from './components/HarvestForm';
 import HarvestTable from './components/HarvestTable';
 
 export default async function HarvestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; month?: string; }>;
 }) {
   const session = await getSession();
 
@@ -23,10 +25,15 @@ export default async function HarvestPage({
     params?.date ||
     new Date().toISOString().split('T')[0];
 
+  const month =
+  params?.month ||
+  date.slice(0, 7);
+
   const [
     varieties,
     weatherOptions,
     records,
+    monthlyRecords,
   ] = await Promise.all([
     prisma.variety.findMany({
       where: {
@@ -64,6 +71,34 @@ export default async function HarvestPage({
         },
       },
     }),
+
+    prisma.harvest.findMany({
+  where: {
+    date: {
+      startsWith: month,
+    },
+  },
+
+  orderBy: [
+    {
+      date: 'asc',
+    },
+    {
+      id: 'asc',
+    },
+  ],
+
+  include: {
+    fieldRejects: true,
+
+    packhouseLoad: {
+      include: {
+        rejects: true,
+      },
+    },
+  },
+}),
+
   ]);
 
   return (
@@ -183,6 +218,24 @@ export default async function HarvestPage({
         </div>
 
       </section>
+
+      {/* =====================================
+    TEMPORARY MONTHLY VERIFICATION
+===================================== */}
+
+<section className="harvest-section">
+  <div className="section-heading"></div>
+        <div className="harvest-table-container">
+          <MonthlyHarvestVerification
+            records={monthlyRecords}
+            month={month}
+            isAdmin={session.role === 'ADMIN'}
+            varieties={varieties}
+            weatherOptions={weatherOptions}
+          />
+          </div>
+
+</section>
 
     </main>
   );

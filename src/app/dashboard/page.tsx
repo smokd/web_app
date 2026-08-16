@@ -207,8 +207,9 @@ export default async function DashboardPage() {
       0
     );
 
-  const totalProcessedKg =
+  /* const totalProcessedKg =
     totalHarvestKg - totalFieldRejectKg;
+*/
 
   const fieldRejectPct =
     totalHarvestKg > 0
@@ -361,7 +362,6 @@ const rejectReasonData = groupedRejects.map((item) => ({
 
             <small>
               {packhouseRejectPct.toFixed(2)}%
-              of packhouse processed
             </small>
         </div>
 
@@ -381,7 +381,7 @@ const rejectReasonData = groupedRejects.map((item) => ({
 
             <small>
               {packhouseRejectPct.toFixed(2)}%
-              of packhouse processed
+              sold/imported.
             </small>
         </div>
 
