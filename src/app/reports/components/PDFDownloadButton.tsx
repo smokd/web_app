@@ -1,31 +1,28 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import dynamic from 'next/dynamic';
-import WeeklyReportPDF from './WeeklyReportPDF';
+import dynamic from "next/dynamic";
+import WeeklyReportPDF from "./WeeklyReportPDF";
 
 const PDFDownloadLink = dynamic(
-  () =>
-    import('@react-pdf/renderer').then(
-      (mod) => mod.PDFDownloadLink
-    ),
+  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
   {
     ssr: false,
     loading: () => (
       <span
         style={{
-          display: 'inline-block',
-          padding: '0.6rem 1rem',
+          display: "inline-block",
+          padding: "0.6rem 1rem",
           borderRadius: 6,
-          background: '#166534',
-          color: '#fff',
+          background: "#166534",
+          color: "#fff",
           fontWeight: 600,
+          cursor: "wait",
         }}
       >
         Loading PDF...
       </span>
     ),
-  }
+  },
 );
 
 export default function PDFDownloadButton({
@@ -37,34 +34,36 @@ export default function PDFDownloadButton({
   weekStart: string;
   weekEnd: string;
 }) {
-  const [ready, setReady] = useState(false);
-
   return (
     <PDFDownloadLink
       document={
-        <WeeklyReportPDF
-          data={data}
-          weekStart={weekStart}
-          weekEnd={weekEnd}
-        />
+        <WeeklyReportPDF data={data} weekStart={weekStart} weekEnd={weekEnd} />
       }
       fileName={`polaris-qa-weekly-report-${weekStart}.pdf`}
-      onClick={() => setReady(true)}
       style={{
-        display: 'inline-block',
-        padding: '0.6rem 1rem',
+        display: "inline-block",
+        padding: "0.6rem 1rem",
         borderRadius: 6,
-        background: '#166534',
-        color: '#fff',
-        textDecoration: 'none',
+        background: "#166534",
+        color: "#fff",
+        textDecoration: "none",
         fontWeight: 600,
+        cursor: "pointer",
       }}
     >
-      {({ loading }) =>
-        loading || !ready
-          ? 'Generate PDF'
-          : 'Download PDF'
-      }
+      {({ loading, error }) => {
+        if (error) {
+          console.error("PDF generation error:", error);
+
+          return "PDF Error";
+        }
+
+        if (loading) {
+          return "Generating PDF...";
+        }
+
+        return "Generate PDF";
+      }}
     </PDFDownloadLink>
   );
 }

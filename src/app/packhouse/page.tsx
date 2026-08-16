@@ -80,11 +80,11 @@ export default async function PackhousePage() {
   });
 
   const awaitingPackhouse = harvests.filter(
-    (harvest) => !harvest.packhouseLoad,
+    (harvest) => harvest.packhouseLoad.length === 0,
   );
 
   const processedHarvests = harvests.filter(
-    (harvest) => !!harvest.packhouseLoad,
+    (harvest) => harvest.packhouseLoad.length > 0,
   );
 
   const totalAwaitingKg = awaitingPackhouse.reduce(
@@ -93,7 +93,12 @@ export default async function PackhousePage() {
   );
 
   const totalProcessedKg = processedHarvests.reduce(
-    (sum, harvest) => sum + Number(harvest.packhouseLoad?.processedKg || 0),
+    (sum, harvest) =>
+      sum +
+      harvest.packhouseLoad.reduce(
+        (loadSum, load) => loadSum + (Number(load.processedKg) || 0),
+        0,
+      ),
     0,
   );
 
@@ -313,17 +318,26 @@ export default async function PackhousePage() {
 
                 <tbody>
                   {processedHarvests.map((harvest) => {
-                    const load = harvest.packhouseLoad!;
+                    const processedKg = harvest.packhouseLoad.reduce(
+                      (sum, load) => sum + (Number(load.processedKg) || 0),
+                      0,
+                    );
 
-                    const rejectKg = load.rejects.reduce(
-                      (sum, reject) => sum + Number(reject.rejectKg || 0),
+                    const rejectKg = harvest.packhouseLoad.reduce(
+                      (sum, load) =>
+                        sum +
+                        (Array.isArray(load.rejects)
+                          ? load.rejects.reduce(
+                              (rejectSum, reject) =>
+                                rejectSum + (Number(reject.rejectKg) || 0),
+                              0,
+                            )
+                          : 0),
                       0,
                     );
 
                     const rejectPct =
-                      load.processedKg > 0
-                        ? (rejectKg / load.processedKg) * 100
-                        : 0;
+                      processedKg > 0 ? (rejectKg / processedKg) * 100 : 0;
 
                     return (
                       <tr key={harvest.id}>
@@ -337,7 +351,7 @@ export default async function PackhousePage() {
 
                         <td>{Number(harvest.harvestedKg).toFixed(2)} kg</td>
 
-                        <td>{Number(load.processedKg).toFixed(2)} kg</td>
+                        <td>{processedKg.toFixed(2)} kg</td>
 
                         <td>{rejectKg.toFixed(2)} kg</td>
 

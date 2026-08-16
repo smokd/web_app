@@ -17,35 +17,30 @@ import {
   CartesianGrid,
 } from "recharts";
 
-type FieldReject = {
-  rejectType: string;
-  rejectKg?: number;
-  rejectPct?: number;
-};
-
-type PackhouseReject = {
-  rejectType: string;
-  rejectKg?: number;
-  rejectPct?: number;
-};
-
-type PackhouseLoad = {
-  id: number;
-  date?: string;
-  processedKg: number;
-  variety: string;
-  rejects?: PackhouseReject[];
-};
-
 type Harvest = {
   id: number;
   date: string;
   variety: string;
   harvestedKg: number;
-  fieldRejectPct?: number;
-  fieldRejects?: FieldReject[];
-  packhouseLoad?: PackhouseLoad[];
+  fieldRejectPct: number;
+
+  fieldRejects: Array<{
+    rejectType: string;
+    rejectKg?: number;
+    rejectPct: number;
+  }>;
 };
+ type packhouseLoad= Array<{
+  id: number;
+  processedKg: number;
+  variety: string;
+  rejects: Array<{
+    rejectType: string;
+    rejectKg: number;
+    rejectPct: number;
+  }>;
+}>;
+
 
 const COLORS = [
   "#0ac5b2",
@@ -58,48 +53,16 @@ const COLORS = [
   "#f97316",
 ];
 
-/* =====================================================
-   HELPERS
-===================================================== */
-
-function getFieldRejectKg(harvest: Harvest): number {
-  return (harvest.fieldRejects ?? []).reduce(
-    (sum, reject) => sum + Number(reject.rejectKg || 0),
-    0,
-  );
-}
-
-function getPackhouseProcessedKg(harvest: Harvest): number {
-  return (harvest.packhouseLoad ?? []).reduce(
-    (sum, load) => sum + Number(load.processedKg || 0),
-    0,
-  );
-}
-
-function getPackhouseRejectKg(harvest: Harvest): number {
-  return (harvest.packhouseLoad ?? []).reduce(
-    (loadSum, load) =>
-      loadSum +
-      (load.rejects ?? []).reduce(
-        (rejectSum, reject) => rejectSum + Number(reject.rejectKg || 0),
-        0,
-      ),
-    0,
-  );
-}
-
-/* =====================================================
-   MAIN REPORT
-===================================================== */
-
 export default function WeeklyReport({ data }: { data: Harvest[] }) {
   const [view, setView] = useState<
     "overview" | "variety" | "daily" | "defects"
   >("overview");
 
-  /* =====================================================
-     WEEK SUMMARY
-  ===================================================== */
+  /*
+   * ==========================================
+   * WEEK SUMMARY
+   * ==========================================
+   */
 
   const summary = useMemo(() => {
     let harvested = 0;
@@ -110,11 +73,30 @@ export default function WeeklyReport({ data }: { data: Harvest[] }) {
     data.forEach((h) => {
       harvested += Number(h.harvestedKg || 0);
 
-      fieldReject += getFieldRejectKg(h);
+      fieldReject += h.fieldRejects.reduce(
+        (sum, r) => sum + Number(r.rejectKg || 0),
+        0,
+      );
 
-      processed += getPackhouseProcessedKg(h);
+      processed += Number(
+        h.packhouseLoad.reduce(
+          (sum, load) => sum + (Number(load.processedKg) || 0),
+          0,
+        ),
+      );
 
-      packhouseReject += getPackhouseRejectKg(h);
+      packhouseReject += h.packhouseLoad.reduce(
+        (loadSum, load) =>
+          loadSum +
+          (Array.isArray(load.rejects)
+            ? load.rejects.reduce(
+                (rejectSum, reject) =>
+                  rejectSum + (Number(reject.rejectKg) || 0),
+                0,
+              )
+            : 0),
+        0,
+      );
     });
 
     return {
@@ -135,9 +117,11 @@ export default function WeeklyReport({ data }: { data: Harvest[] }) {
     };
   }, [data]);
 
-  /* =====================================================
-     VARIETY
-  ===================================================== */
+  /*
+   * ==========================================
+   * VARIETY
+   * ==========================================
+   */
 
   const varietyData = useMemo(() => {
     const map = new Map<
@@ -150,53 +134,40 @@ export default function WeeklyReport({ data }: { data: Harvest[] }) {
       }
     >();
 
-    const getVariety = (variety: string) => {
-      const existing = map.get(variety);
-
-      if (existing) {
-        return existing;
-      }
-
-      const created = {
+    data.forEach((h) => {
+      const existing = map.get(h.variety) || {
         harvested: 0,
         fieldReject: 0,
         processed: 0,
         packhouseReject: 0,
       };
 
-      map.set(variety, created);
+      existing.harvested += Number(h.harvestedKg || 0);
 
-      return created;
-    };
+      existing.fieldReject += h.fieldRejects.reduce(
+        (sum, r) => sum + Number(r.rejectKg || 0),
+        0,
+      );
 
-    data.forEach((h) => {
-      /*
-       * Harvest belongs to the harvest variety.
-       */
-      const harvestVariety = getVariety(h.variety);
+      existing.processed += h.packhouseLoad.reduce(
+  (sum, load) =>
+    sum + (Number(load.processedKg) || 0),
+  0,
+);
 
-      harvestVariety.harvested += Number(h.harvestedKg || 0);
-
-      harvestVariety.fieldReject += getFieldRejectKg(h);
-
-      /*
-       * Packhouse processing belongs to the
-       * variety actually processed.
-       *
-       * It does NOT necessarily belong to the
-       * harvest variety.
-       */
-      (h.packhouseLoad ?? []).forEach((load) => {
-        const processedVariety = getVariety(load.variety);
-
-        processedVariety.processed += Number(load.processedKg || 0);
-
-        processedVariety.packhouseReject += (load.rejects ?? []).reduce(
-          (sum, reject) => sum + Number(reject.rejectKg || 0),
+existing.packhouseReject += h.packhouseLoad.reduce(
+  (loadSum, load) =>
+    loadSum +
+    (Array.isArray(load.rejects)
+      ? load.rejects.reduce(
+          (rejectSum, reject) =>
+            rejectSum +
+            (Number(reject.rejectKg) || 0),
           0,
-        );
-      });
-    });
+        )
+      : 0),
+  0,
+);
 
     return Array.from(map.entries())
       .map(([variety, values]) => ({
@@ -223,9 +194,11 @@ export default function WeeklyReport({ data }: { data: Harvest[] }) {
       .sort((a, b) => b.harvested - a.harvested);
   }, [data]);
 
-  /* =====================================================
-     DAILY
-  ===================================================== */
+  /*
+   * ==========================================
+   * DAILY
+   * ==========================================
+   */
 
   const dailyData = useMemo(() => {
     const map = new Map<
@@ -238,52 +211,43 @@ export default function WeeklyReport({ data }: { data: Harvest[] }) {
       }
     >();
 
-    const getDay = (date: string) => {
-      const existing = map.get(date);
-
-      if (existing) {
-        return existing;
-      }
-
-      const created = {
-        harvested: 0,
-        fieldReject: 0,
-        processed: 0,
-        packhouseReject: 0,
-      };
-
-      map.set(date, created);
-
-      return created;
-    };
-
     data.forEach((h) => {
-      /*
-       * Harvest statistics use harvest date.
-       */
-      const harvestDay = getDay(h.date);
+  const existing = map.get(h.variety) || {
+    harvested: 0,
+    fieldReject: 0,
+    processed: 0,
+    packhouseReject: 0,
+  };
 
-      harvestDay.harvested += Number(h.harvestedKg || 0);
+  existing.harvested += Number(h.harvestedKg || 0);
 
-      harvestDay.fieldReject += getFieldRejectKg(h);
+  existing.fieldReject += h.fieldRejects.reduce(
+    (sum, r) => sum + Number(r.rejectKg || 0),
+    0,
+  );
 
-      /*
-       * Packhouse statistics use the
-       * packhouse processing date.
-       */
-      (h.packhouseLoad ?? []).forEach((load) => {
-        const processingDate = load.date || h.date;
+  existing.processed += h.packhouseLoad.reduce(
+    (sum, load) =>
+      sum + (Number(load.processedKg) || 0),
+    0,
+  );
 
-        const processingDay = getDay(processingDate);
+  existing.packhouseReject += h.packhouseLoad.reduce(
+    (loadSum, load) =>
+      loadSum +
+      (Array.isArray(load.rejects)
+        ? load.rejects.reduce(
+            (rejectSum, reject) =>
+              rejectSum +
+              (Number(reject.rejectKg) || 0),
+            0,
+          )
+        : 0),
+    0,
+  );
 
-        processingDay.processed += Number(load.processedKg || 0);
-
-        processingDay.packhouseReject += (load.rejects ?? []).reduce(
-          (sum, reject) => sum + Number(reject.rejectKg || 0),
-          0,
-        );
-      });
-    });
+  map.set(h.variety, existing);
+});
 
     return Array.from(map.entries())
       .map(([date, values]) => ({
@@ -310,9 +274,11 @@ export default function WeeklyReport({ data }: { data: Harvest[] }) {
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [data]);
 
-  /* =====================================================
-     DEFECTS
-  ===================================================== */
+  /*
+   * ==========================================
+   * DEFECTS
+   * ==========================================
+   */
 
   const defectData = useMemo(() => {
     const map = new Map<
@@ -323,37 +289,35 @@ export default function WeeklyReport({ data }: { data: Harvest[] }) {
       }
     >();
 
-    const addDefect = (
-      rejectType: string,
-      fieldKg: number,
-      packhouseKg: number,
-    ) => {
-      const existing = map.get(rejectType) ?? {
-        fieldKg: 0,
-        packhouseKg: 0,
-      };
-
-      existing.fieldKg += fieldKg;
-      existing.packhouseKg += packhouseKg;
-
-      map.set(rejectType, existing);
-    };
-
     data.forEach((h) => {
       /*
-       * FIELD REJECTS
+       * FIELD DEFECTS
        */
-      (h.fieldRejects ?? []).forEach((reject) => {
-        addDefect(reject.rejectType, Number(reject.rejectKg || 0), 0);
+
+      h.fieldRejects.forEach((reject) => {
+        const existing = map.get(reject.rejectType) || {
+          fieldKg: 0,
+          packhouseKg: 0,
+        };
+
+        existing.fieldKg += Number(reject.rejectKg || 0);
+
+        map.set(reject.rejectType, existing);
       });
 
       /*
-       * PACKHOUSE REJECTS
+       * PACKHOUSE DEFECTS
        */
-      (h.packhouseLoad ?? []).forEach((load) => {
-        (load.rejects ?? []).forEach((reject) => {
-          addDefect(reject.rejectType, 0, Number(reject.rejectKg || 0));
-        });
+
+      h.packhouseLoad?.rejects.forEach((reject) => {
+        const existing = map.get(reject.rejectType) || {
+          fieldKg: 0,
+          packhouseKg: 0,
+        };
+
+        existing.packhouseKg += Number(reject.rejectKg || 0);
+
+        map.set(reject.rejectType, existing);
       });
     });
 
@@ -371,12 +335,18 @@ export default function WeeklyReport({ data }: { data: Harvest[] }) {
       .slice(0, 8);
   }, [data]);
 
-  /* =====================================================
-     NAVIGATION / CONTENT
-  ===================================================== */
+  /*
+   * ==========================================
+   * OVERVIEW
+   * ==========================================
+   */
 
   return (
     <div className="weekly-report">
+      {/* ================================
+          NAVIGATION
+      ================================= */}
+
       <div className="report-tabs">
         <button
           onClick={() => setView("overview")}
@@ -407,6 +377,10 @@ export default function WeeklyReport({ data }: { data: Harvest[] }) {
         </button>
       </div>
 
+      {/* ================================
+          OVERVIEW
+      ================================= */}
+
       {view === "overview" && (
         <Overview
           summary={summary}
@@ -415,9 +389,21 @@ export default function WeeklyReport({ data }: { data: Harvest[] }) {
         />
       )}
 
+      {/* ================================
+          VARIETY
+      ================================= */}
+
       {view === "variety" && <VarietyReport data={varietyData} />}
 
+      {/* ================================
+          DAILY
+      ================================= */}
+
       {view === "daily" && <DailyReport data={dailyData} />}
+
+      {/* ================================
+          DEFECTS
+      ================================= */}
 
       {view === "defects" && <DefectReport data={defectData} />}
     </div>
@@ -428,50 +414,43 @@ export default function WeeklyReport({ data }: { data: Harvest[] }) {
    OVERVIEW
 ===================================================== */
 
-function Overview({
-  summary,
-  dailyData,
-  defectData,
-}: {
-  summary: any;
-  dailyData: any[];
-  defectData: any[];
-}) {
+function Overview({ summary, dailyData, defectData }: any) {
   return (
     <div className="report-section">
       <div className="report-section-header">
         <div>
           <h2>Weekly Overview</h2>
-
           <p>Production and quality performance</p>
         </div>
       </div>
 
+      {/* KPI GRID */}
+
       <div className="report-summary-grid">
         <SummaryCard
           label="Harvested"
-          value={`${Number(summary.harvested || 0).toLocaleString()} kg`}
+          value={`${summary.harvested.toLocaleString()} kg`}
         />
 
         <SummaryCard
           label="Field Reject"
-          value={`${Number(summary.fieldRejectPct || 0).toFixed(2)}%`}
-          secondary={`${Number(summary.fieldReject || 0).toLocaleString()} kg`}
+          value={`${summary.fieldRejectPct.toFixed(2)}%`}
+          secondary={`${summary.fieldReject.toLocaleString()} kg`}
         />
 
         <SummaryCard
           label="Packhouse Processed"
-          value={`${Number(summary.processed || 0).toLocaleString()} kg`}
+          value={`${summary.processed.toLocaleString()} kg`}
         />
 
         <SummaryCard
           label="Packhouse Reject"
-          value={`${Number(summary.packhouseRejectPct || 0).toFixed(2)}%`}
-          secondary={`${Number(
-            summary.packhouseReject || 0,
-          ).toLocaleString()} kg`}
+          value={`${summary.packhouseRejectPct.toFixed(2)}%`}
+          secondary={`${summary.packhouseReject.toLocaleString()} kg`}
         />
       </div>
+
+      {/* DAILY CHART */}
 
       <ReportCard title="Daily Harvest & Processing">
         <ResponsiveContainer width="100%" height={350}>
@@ -492,6 +471,8 @@ function Overview({
           </BarChart>
         </ResponsiveContainer>
       </ReportCard>
+
+      {/* REJECT TREND */}
 
       <ReportCard title="Quality Trend">
         <ResponsiveContainer width="100%" height={320}>
@@ -524,6 +505,8 @@ function Overview({
           </LineChart>
         </ResponsiveContainer>
       </ReportCard>
+
+      {/* DEFECT TABLE */}
 
       <ReportCard title="Top Defects">
         <DefectTable data={defectData} />
@@ -587,17 +570,17 @@ function VarietyReport({ data }: { data: any[] }) {
                     <strong>{row.variety}</strong>
                   </td>
 
-                  <td>{Number(row.harvested || 0).toLocaleString()}</td>
+                  <td>{row.harvested.toLocaleString()}</td>
 
-                  <td>{Number(row.fieldReject || 0).toLocaleString()}</td>
+                  <td>{row.fieldReject.toLocaleString()}</td>
 
-                  <td>{Number(row.fieldRejectPct || 0).toFixed(2)}%</td>
+                  <td>{row.fieldRejectPct.toFixed(2)}%</td>
 
-                  <td>{Number(row.processed || 0).toLocaleString()}</td>
+                  <td>{row.processed.toLocaleString()}</td>
 
-                  <td>{Number(row.packhouseReject || 0).toLocaleString()}</td>
+                  <td>{row.packhouseReject.toLocaleString()}</td>
 
-                  <td>{Number(row.packhouseRejectPct || 0).toFixed(2)}%</td>
+                  <td>{row.packhouseRejectPct.toFixed(2)}%</td>
                 </tr>
               ))}
             </tbody>
@@ -700,7 +683,7 @@ function DefectReport({ data }: { data: any[] }) {
               dataKey="totalKg"
               nameKey="name"
               label={({ name, percent }) =>
-                `${name}: ${(Number(percent || 0) * 100).toFixed(1)}%`
+                `${name}: ${(percent * 100).toFixed(1)}%`
               }
             >
               {data.map((_, index) => (
@@ -744,12 +727,12 @@ function DefectTable({ data }: { data: any[] }) {
                 <strong>{row.name}</strong>
               </td>
 
-              <td>{Number(row.fieldKg || 0).toFixed(2)}</td>
+              <td>{row.fieldKg.toFixed(2)}</td>
 
-              <td>{Number(row.packhouseKg || 0).toFixed(2)}</td>
+              <td>{row.packhouseKg.toFixed(2)}</td>
 
               <td>
-                <strong>{Number(row.totalKg || 0).toFixed(2)}</strong>
+                <strong>{row.totalKg.toFixed(2)}</strong>
               </td>
             </tr>
           ))}
@@ -760,7 +743,7 @@ function DefectTable({ data }: { data: any[] }) {
 }
 
 /* =====================================================
-   SUMMARY CARD
+   COMPONENTS
 ===================================================== */
 
 function SummaryCard({
@@ -782,10 +765,6 @@ function SummaryCard({
     </div>
   );
 }
-
-/* =====================================================
-   REPORT CARD
-===================================================== */
 
 function ReportCard({
   title,

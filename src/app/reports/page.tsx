@@ -1,8 +1,8 @@
-import { redirect } from 'next/navigation';
-import prisma from '@/lib/prisma';
-import { getSession } from '@/lib/auth';
-import WeeklyReport from './components/WeeklyReport';
-import PDFDownloadButton from './components/PDFDownloadButton';
+import { redirect } from "next/navigation";
+import prisma from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+import WeeklyReport from "./components/WeeklyReport";
+import PDFDownloadButton from "./components/PDFDownloadButton";
 
 function getWeekStart(dateStr: string): Date {
   const d = new Date(`${dateStr}T00:00:00`);
@@ -17,11 +17,11 @@ function getWeekStart(dateStr: string): Date {
 }
 
 function formatDate(d: Date): string {
-  return d.toISOString().split('T')[0];
+  return d.toISOString().split("T")[0];
 }
 
 function formatNumber(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 2,
   }).format(value);
 }
@@ -34,14 +34,12 @@ export default async function ReportsPage({
   const session = await getSession();
 
   if (!session) {
-    redirect('/login');
+    redirect("/login");
   }
 
   const params = await searchParams;
 
-  const pickedDate =
-    params?.date ||
-    new Date().toISOString().split('T')[0];
+  const pickedDate = params?.date || new Date().toISOString().split("T")[0];
 
   const weekStart = getWeekStart(pickedDate);
 
@@ -75,7 +73,7 @@ export default async function ReportsPage({
     },
 
     orderBy: {
-      date: 'asc',
+      date: "asc",
     },
   });
 
@@ -85,7 +83,7 @@ export default async function ReportsPage({
 
   const totalHarvested = harvests.reduce(
     (sum, h) => sum + Number(h.harvestedKg || 0),
-    0
+    0,
   );
 
   /*
@@ -95,30 +93,41 @@ export default async function ReportsPage({
    */
   const totalFieldRejectKg = harvests.reduce(
     (sum, h) => sum + Number(h.fieldRejectsKg || 0),
-    0
+    0,
   );
 
   const totalProcessedKg = harvests.reduce(
     (sum, h) =>
-      sum + Number(h.packhouseLoad?.processedKg || 0),
-    0
+      sum +
+      Number(
+        h.packhouseLoad.reduce(
+          (loadSum, load) => loadSum + (Number(load.processedKg) || 0),
+          0,
+        ),
+      ),
+    0,
   );
 
   const totalPackhouseRejectKg = harvests.reduce(
     (sum, h) =>
       sum +
-      (h.packhouseLoad?.rejects.reduce(
-        (rejectSum, r) =>
-          rejectSum + Number(r.rejectKg || 0),
-        0
-      ) || 0),
-    0
+      h.packhouseLoad.reduce(
+        (loadSum, load) =>
+          loadSum +
+          (Array.isArray(load.rejects)
+            ? load.rejects.reduce(
+                (rejectSum, reject) =>
+                  rejectSum + (Number(reject.rejectKg) || 0),
+                0,
+              )
+            : 0),
+        0,
+      ),
+    0,
   );
 
   const fieldRejectPct =
-    totalHarvested > 0
-      ? (totalFieldRejectKg / totalHarvested) * 100
-      : 0;
+    totalHarvested > 0 ? (totalFieldRejectKg / totalHarvested) * 100 : 0;
 
   const packhouseRejectPct =
     totalProcessedKg > 0
@@ -127,48 +136,38 @@ export default async function ReportsPage({
 
   const weekEnd = new Date(weekStart);
 
-  weekEnd.setDate(
-    weekEnd.getDate() + 6
-  );
+  weekEnd.setDate(weekEnd.getDate() + 6);
 
   return (
     <main className="reports-page">
-
       {/* =====================================
           HEADER
       ===================================== */}
 
       <header className="reports-header">
-
         <div>
           <h1>Weekly Quality Report</h1>
 
-          <p>
-            Harvest and quality performance
-            for the selected week.
-          </p>
+          <p>Harvest and quality performance for the selected week.</p>
         </div>
 
         <div
           className="report-header-actions"
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            gap: '0.75rem',
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: "0.75rem",
           }}
         >
-
           <div className="report-period">
-
             <span>Reporting Period</span>
 
             <strong>
               {formatDate(weekStart)}
-              {' – '}
+              {" – "}
               {formatDate(weekEnd)}
             </strong>
-
           </div>
 
           {/* PDF DOWNLOAD */}
@@ -177,27 +176,20 @@ export default async function ReportsPage({
             weekStart={formatDate(weekStart)}
             weekEnd={formatDate(weekEnd)}
           />
-
         </div>
-
       </header>
-
 
       {/* =====================================
           DATE PICKER
       ===================================== */}
 
-      <WeekPicker
-        pickedDate={pickedDate}
-      />
-
+      <WeekPicker pickedDate={pickedDate} />
 
       {/* =====================================
           KPI CARDS
       ===================================== */}
 
       <section className="report-kpis">
-
         <ReportKpi
           label="Harvested"
           value={`${formatNumber(totalHarvested)} kg`}
@@ -219,43 +211,28 @@ export default async function ReportsPage({
           value={`${packhouseRejectPct.toFixed(2)}%`}
           secondary={`${formatNumber(totalPackhouseRejectKg)} kg`}
         />
-
       </section>
-
 
       {/* =====================================
           NO DATA
       ===================================== */}
 
       {harvests.length === 0 ? (
-
         <div className="report-empty">
-
           <h2>No harvest data</h2>
 
-          <p>
-            There are no harvest records for
-            this reporting period.
-          </p>
-
+          <p>There are no harvest records for this reporting period.</p>
         </div>
-
       ) : (
-
         /* =====================================
            REPORT
         ===================================== */
 
-        <WeeklyReport
-          data={harvests}
-        />
-
+        <WeeklyReport data={harvests} />
       )}
-
     </main>
   );
 }
-
 
 /* =========================================
    KPI
@@ -272,47 +249,24 @@ function ReportKpi({
 }) {
   return (
     <div className="report-kpi">
+      <span>{label}</span>
 
-      <span>
-        {label}
-      </span>
+      <strong>{value}</strong>
 
-      <strong>
-        {value}
-      </strong>
-
-      {secondary && (
-        <small>
-          {secondary}
-        </small>
-      )}
-
+      {secondary && <small>{secondary}</small>}
     </div>
   );
 }
-
 
 /* =========================================
    WEEK PICKER
 ========================================= */
 
-function WeekPicker({
-  pickedDate,
-}: {
-  pickedDate: string;
-}) {
+function WeekPicker({ pickedDate }: { pickedDate: string }) {
   return (
-    <form
-      method="GET"
-      action="/reports"
-      className="week-picker"
-    >
-
+    <form method="GET" action="/reports" className="week-picker">
       <div className="report-date-field">
-
-        <label htmlFor="report-date">
-          Select Date
-        </label>
+        <label htmlFor="report-date">Select Date</label>
 
         <input
           id="report-date"
@@ -320,16 +274,11 @@ function WeekPicker({
           name="date"
           defaultValue={pickedDate}
         />
-
       </div>
 
-      <button
-        type="submit"
-        className="btn btn-primary"
-      >
+      <button type="submit" className="btn btn-primary">
         Load Week
       </button>
-
     </form>
   );
 }
