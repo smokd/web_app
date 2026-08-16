@@ -11,10 +11,10 @@ type PackhouseLoad = {
   id: number;
   variety: string;
   processedKg: number;
+  notes?: string | null;
   rejects: PackhouseReject[];
 };
 
-type PackhouseLoadInput = PackhouseLoad | null;
 //type packhouseLoad: PackhouseLoad[];
 
 type Record = {
@@ -30,7 +30,7 @@ type Record = {
   supervisor: string | null;
   notes: string | null;
   fieldRejects: FieldReject[];
-  packhouseLoad: PackhouseLoad | null;
+  packhouseLoad: PackhouseLoad[];
 };
 
 type Variety = { id: number; name: string };
@@ -288,7 +288,25 @@ export default function HarvestTable({
                         {record.packhouseLoad && (
                           <div>
                             <strong style={{ fontSize: '0.85rem' }}>Packhouse:</strong>{' '}
-                            {fmt2(record.packhouseLoad.processedKg)} kg processed
+                            {fmt2{record.packhouseLoad.map((load) => (
+  <div key={load.id}>
+    <strong>{load.variety}</strong>
+    <span>
+      {fmt2(load.processedKg)} kg
+    </span>
+
+    {load.rejects?.length > 0 && (
+      <div>
+        {load.rejects.map((reject) => (
+          <div key={reject.id}>
+            {reject.rejectType}:{" "}
+            {fmt2(reject.rejectKg)} kg
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+))}} kg processed
                             {record.packhouseLoad.rejects.length > 0 && (
                               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
                                 {record.packhouseLoad.rejects.map((pr) => (

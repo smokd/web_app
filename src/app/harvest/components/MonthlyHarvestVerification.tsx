@@ -26,6 +26,7 @@ type PackhouseLoad = {
   id: number;
   variety: string;
   processedKg: number;
+  notes?: string | null;
   rejects: PackhouseReject[];
 };
 
@@ -42,7 +43,7 @@ type HarvestRecord = {
   supervisor: string | null;
   notes: string | null;
   fieldRejects: FieldReject[];
-  packhouseLoad: PackhouseLoad | null;
+  packhouseLoad: PackhouseLoad[];
 };
 
 type Variety = {
