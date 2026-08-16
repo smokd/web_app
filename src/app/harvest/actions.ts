@@ -7,7 +7,7 @@ import { createAuditLog } from '@/lib/audit';
 
 type FieldRejectInput = {
   rejectType: string;
-  rejectKg: number;
+  rejectPct: number;
 };
 
 type PackhouseRejectInput = {
@@ -33,10 +33,10 @@ function calcRejectPct(
   }
 
   const pct =
-    rejects / harvested;
+    (rejects / harvested) * 100;
 
   return Number.isFinite(pct)
-    ? pct
+    ? Math.round(pct * 100) / 100
     : 0;
 }
 
@@ -79,13 +79,20 @@ function parseFieldRejects(
 
   return parsed.map((item, index) => {
     if (!item || typeof item !== 'object') {
-      throw new Error(`Invalid field reject at row ${index + 1}`);
+      throw new Error(
+        `Invalid field reject at row ${index + 1}`
+      );
     }
 
     const row = item as Record<string, unknown>;
 
-    const rejectType = String(row.rejectType ?? '').trim();
-    const rejectKg = Number(row.rejectKg);
+    const rejectType = String(
+      row.rejectType ?? ''
+    ).trim();
+
+    const rejectPct = Number(
+      row.rejectPct
+    );
 
     if (!rejectType) {
       throw new Error(
@@ -93,16 +100,18 @@ function parseFieldRejects(
       );
     }
 
-
-    if (!Number.isFinite(rejectKg) || rejectKg < 0) {
+    if (
+      !Number.isFinite(rejectPct) ||
+      rejectPct < 0
+    ) {
       throw new Error(
         `Field reject percentage is invalid at row ${index + 1}`
       );
     }
 
     return {
-      rejectType: row.rejectType,
-      rejectKg,
+      rejectType,
+      rejectPct,
     };
   });
 }
@@ -477,7 +486,7 @@ export async function updateHarvestRecord(
   const fieldRejectPct =
     calcRejectPct(
       harvestedKg,
-      totalFieldRejectKg
+      fieldRejectsKg
     );
 
      const existing =
