@@ -101,17 +101,17 @@ function parseFieldRejects(
     }
 
     if (
-      !Number.isFinite(rejectPct) ||
-      rejectPct < 0
+      !Number.isFinite(rejectKg) ||
+      rejectKg < 0
     ) {
       throw new Error(
-        `Field reject percentage is invalid at row ${index + 1}`
+        `Field reject kg is invalid at row ${index + 1}`
       );
     }
 
     return {
       rejectType,
-      rejectPct,
+      rejectKg,
     };
   });
 }
