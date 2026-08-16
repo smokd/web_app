@@ -24,6 +24,7 @@ type PackhouseReject = {
 
 type PackhouseLoad = {
   id: number;
+  variety: string;
   processedKg: number;
   rejects: PackhouseReject[];
 };
@@ -54,8 +55,16 @@ type Weather = {
   name: string;
 };
 
-function fmtKg(value: number) {
-  return value.toLocaleString(undefined, {
+function fmtKg(
+  value: number | null | undefined
+) {
+  const kg = Number(value);
+
+  if (!Number.isFinite(kg)) {
+    return "0.00";
+  }
+
+  return kg.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -99,15 +108,38 @@ export default function MonthlyHarvestVerification({
         sum.fieldRejectsKg += record.fieldRejectsKg;
 
         if (record.packhouseLoad) {
-          sum.packhouseProcessedKg +=
-            record.packhouseLoad.processedKg;
+          if (
+  Array.isArray(
+    record.packhouseLoad
+  )
+) {
+  for (
+    const load of
+    record.packhouseLoad
+  ) {
+    sum.packhouseProcessedKg +=
+      Number(
+        load.processedKg
+      ) || 0;
 
-          sum.packhouseRejectsKg +=
-            record.packhouseLoad.rejects.reduce(
-              (rejectSum, reject) =>
-                rejectSum + reject.rejectKg,
-              0
-            );
+    sum.packhouseRejectsKg +=
+      Array.isArray(
+        load.rejects
+      )
+        ? load.rejects.reduce(
+            (
+              rejectSum,
+              reject
+            ) =>
+              rejectSum +
+              (Number(
+                reject.rejectKg
+              ) || 0),
+            0
+          )
+        : 0;
+  }
+}
         }
 
         return sum;
@@ -545,13 +577,30 @@ export default function MonthlyHarvestVerification({
                 }
 
                 const packhouseRejectKg =
-                  record.packhouseLoad
-                    ? record.packhouseLoad.rejects.reduce(
-                        (sum, reject) =>
-                          sum + reject.rejectKg,
-                        0
-                      )
-                    : 0;
+  Array.isArray(
+    record.packhouseLoad
+  )
+    ? record.packhouseLoad.reduce(
+        (loadSum, load) =>
+          loadSum +
+          (Array.isArray(
+            load.rejects
+          )
+            ? load.rejects.reduce(
+                (
+                  rejectSum,
+                  reject
+                ) =>
+                  rejectSum +
+                  (Number(
+                    reject.rejectKg
+                  ) || 0),
+                0
+              )
+            : 0),
+        0
+      )
+    : 0;
 
                 return (
                   <tr

@@ -49,18 +49,15 @@ model Harvest {
 
 model FieldReject {
   id          Int      @id @default(autoincrement())
-  date        DateTime
+  date        String
   variety     String
   rejectType  String
-
   inputMode   String   @default("KG")
   inputValue  Float    @default(0)
-
-  rejectKg    Float
-  rejectPct   Float
-
-  harvestId   Int
-  harvest     Harvest  @relation(fields: [harvestId], references: [id])
+  rejectKg    Float    @default(0)
+  rejectPct   Float    @default(0)
+  harvestId   Int?
+  harvest     Harvest? @relation(fields: [harvestId],references: [id],onDelete: Cascade)
 }
 
 model PackhouseLoad {

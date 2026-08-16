@@ -7,7 +7,15 @@ import {Fragment} from 'react';
 
 type FieldReject = { id: number; rejectType: string; rejectPct: number; rejectKg: number };
 type PackhouseReject = { id: number; rejectType: string; rejectKg: number; rejectPct: number };
-type PackhouseLoad = { id: number; processedKg: number; rejects: PackhouseReject[] };
+type PackhouseLoad = {
+  id: number;
+  variety: string;
+  processedKg: number;
+  rejects: PackhouseReject[];
+};
+
+type PackhouseLoadInput = PackhouseLoad | null;
+//type packhouseLoad: PackhouseLoad[];
 
 type Record = {
   id: number;
@@ -28,8 +36,22 @@ type Record = {
 type Variety = { id: number; name: string };
 type Weather = { id: number; name: string };
 
-function fmt2(n: number): string {
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+function fmt2(
+  n: number | null | undefined
+): string {
+  const value = Number(n);
+
+  if (!Number.isFinite(value)) {
+    return '0.00';
+  }
+
+  return value.toLocaleString(
+    undefined,
+    {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    }
+  );
 }
 
 export default function HarvestTable({
@@ -152,16 +174,59 @@ export default function HarvestTable({
                     <td style={{ padding: '0.6rem', textAlign: 'right' }}>{fmt2(record.fieldRejectsKg)}</td>
                     <td style={{ padding: '0.6rem', textAlign: 'right' }}>{fmt2(record.fieldRejectPct * 100)}%</td>
                     <td style={{ padding: '0.6rem', textAlign: 'right' }}>
-                      {record.packhouseLoad ? fmt2(record.packhouseLoad.processedKg) : '—'}
+                      {record.packhouseLoad.length > 0
+                              ? fmt2(
+                                  record.packhouseLoad.reduce(
+                                    (sum, load) =>
+                                      sum +
+                                      (Number(load.processedKg) || 0),
+                                    0
+                                  )
+                                )
+                              : '—'}
                     </td>
                     <td style={{ padding: '0.6rem', textAlign: 'right' }}>
-                      {record.packhouseLoad
-                        ? fmt2(
-                            record.packhouseLoad.processedKg > 0
-                              ? (record.packhouseLoad.rejects.reduce((s, r) => s + r.rejectKg, 0) / record.packhouseLoad.processedKg) * 100
-                              : 0
-                          ) + '%'
-                        : '—'}
+                      {record.packhouseLoad.length > 0
+  ? (() => {
+      const processed =
+        record.packhouseLoad.reduce(
+          (sum, load) =>
+            sum +
+            (Number(
+              load.processedKg
+            ) || 0),
+          0
+        );
+
+      const rejects =
+        record.packhouseLoad.reduce(
+          (sum, load) =>
+            sum +
+            load.rejects.reduce(
+              (
+                rejectSum,
+                reject
+              ) =>
+                rejectSum +
+                (Number(
+                  reject.rejectKg
+                ) || 0),
+              0
+            ),
+          0
+        );
+
+      return (
+        fmt2(
+          processed > 0
+            ? (rejects /
+                processed) *
+                100
+            : 0
+        ) + '%'
+      );
+    })()
+  : '—'}
                     </td>
                     <td style={{ padding: '0.6rem' }}>{record.blocks || '—'}</td>
                     <td style={{ padding: '0.6rem' }}>
