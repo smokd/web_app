@@ -7,7 +7,7 @@ import { createAuditLog } from '@/lib/audit';
 
 type FieldRejectInput = {
   rejectType: string;
-  rejectPct: number;
+  rejectKg: number;
 };
 
 type PackhouseRejectInput = {
@@ -90,8 +90,8 @@ function parseFieldRejects(
       row.rejectType ?? ''
     ).trim();
 
-    const rejectPct = Number(
-      row.rejectPct
+    const rejectKg = Number(
+      row.rejectKg
     );
 
     if (!rejectType) {
@@ -258,13 +258,17 @@ export async function createHarvestRecord(formData: FormData) {
     formData.get('packhouse')
   );
 
-  const totalFieldRejectPct = fieldRejects.reduce(
-    (sum, reject) => sum + reject.rejectPct,
-    0
-  );
+  const totalFieldRejectKg = fieldRejects.reduce(
+  (sum, reject) => sum + reject.rejectKg,
+  0
+);
 
-  const totalFieldRejectKg =
-    (harvestedKg * totalFieldRejectPct) / 100;
+  const totalFieldRejectPct = calcRejectPct(
+  harvestedKg,
+  totalFieldRejectKg
+);
+
+
 
   if (totalFieldRejectKg > harvestedKg) {
     throw new Error(
@@ -336,19 +340,17 @@ export async function createHarvestRecord(formData: FormData) {
 
       if (fieldRejects.length > 0) {
         await tx.fieldReject.createMany({
-  data: fieldRejects.map((reject) => {
-    const rejectKg =
-      (harvestedKg * reject.rejectPct) / 100;
-
-    return {
-      date,
-      variety,
-      rejectType: reject.rejectType,
-      rejectKg,
-      rejectPct: reject.rejectPct,
-      harvestId: harvest.id,
-    };
-  }),
+  data: fieldRejects.map((reject) => ({
+  date,
+  variety,
+  rejectType: reject.rejectType,
+  rejectKg: reject.rejectKg,
+  rejectPct: calcRejectPct(
+    harvestedKg,
+    reject.rejectKg
+  ),
+  harvestId: harvest.id,
+})),
 });
       }
 
