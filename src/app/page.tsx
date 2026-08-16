@@ -29,6 +29,12 @@ export default async function Home() {
     },
   });
 
+  const OUTLIER_HARVEST_KG = 30_000; //to remove bulk harvest data, outlier
+
+  const filteredHarvests = harvests.filter(
+    (h) => Number(h.harvestedKg || 0) < OUTLIER_HARVEST_KG,
+  );
+
   const fieldRejects = await prisma.fieldReject.findMany({
     orderBy: {
       date: "asc",
@@ -103,61 +109,42 @@ export default async function Home() {
    * ==========================================
    */
 
-  const harvestData = harvests.map((h) => ({
-    ...h,
+  const harvestData = filteredHarvests.map((h) => {
+    const fieldRejectKg = Number(h.fieldRejectsKg || 0);
 
-    variety: {
-      name: h.variety,
-    },
-  }));
+    const processedKg =
+      h.packhouseLoad?.reduce(
+        (sum, load) => sum + Number(load.processedKg || 0),
+        0,
+      ) || 0;
 
-  /*
-   * ==========================================
-   * FIELD REJECT TREND DATA
-   * ==========================================
-   */
-  /*
-  const weightedHarvestData = Object.values(weeklyFieldRejects)
-  .sort(
-    (a, b) =>
-      a.weekStart.getTime() -
-      b.weekStart.getTime()
-  )
-  .map((week) => ({
-    date: week.weekStart,
-    harvestedKg: week.harvestedKg,
-    fieldRejectsKg: week.fieldRejectsKg,
-    fieldRejectPct:
-      week.harvestedKg > 0
-        ? (week.fieldRejectsKg / week.harvestedKg) * 100
-        : 0,
-    variety: {
-      name: 'All varieties',
-    },
-  }));
-  */
+    const packhouseRejectKg =
+      h.packhouseLoad?.reduce(
+        (sum, load) =>
+          sum +
+          (load.rejects?.reduce(
+            (rejectSum, reject) => rejectSum + Number(reject.rejectKg || 0),
+            0,
+          ) || 0),
+        0,
+      ) || 0;
 
-  /*
-   * ==========================================
-   * FORMAT PACKHOUSE DATA
-   * ==========================================
-   */
+    const totalRejectKg = fieldRejectKg + packhouseRejectKg;
 
-  /* const packhouseData =
-    packhouseRejects.map((p) => ({
-      ...p,
+    const exportedKg = Math.max(0, processedKg - packhouseRejectKg);
 
-      rejectType: {
-        name: p.rejectType,
-      },
-
+    return {
+      ...h,
+      processedKg,
+      fieldRejectKg,
+      packhouseRejectKg,
+      totalRejectKg,
+      exportedKg,
       variety: {
-        name: p.variety,
+        name: h.variety,
       },
-    }));
-
-    */
-
+    };
+  });
   const packhouseData = packhouseLoads.flatMap((load) =>
     load.rejects.map((reject) => ({
       date: load.date,
@@ -179,19 +166,15 @@ export default async function Home() {
    * ==========================================
    */
 
-  const totalHarvestKg = harvests.reduce(
+  const totalHarvestKg = filteredHarvests.reduce(
     (sum, h) => sum + Number(h.harvestedKg || 0),
     0,
   );
 
-  const totalFieldRejectKg = harvests.reduce(
+  const totalFieldRejectKg = filteredHarvests.reduce(
     (sum, h) => sum + Number(h.fieldRejectsKg || 0),
     0,
   );
-
-  /* const totalProcessedKg =
-    totalHarvestKg - totalFieldRejectKg;
-*/
 
   const fieldRejectPct =
     totalHarvestKg > 0 ? (totalFieldRejectKg / totalHarvestKg) * 100 : 0;
@@ -204,10 +187,12 @@ export default async function Home() {
   const totalPackhouseRejectKg = packhouseLoads.reduce(
     (sum, load) =>
       sum +
-      load.rejects.reduce(
-        (rejectSum, reject) => rejectSum + Number(reject.rejectKg || 0),
-        0,
-      ),
+      (Array.isArray(load.rejects)
+        ? load.rejects.reduce(
+            (rejectSum, reject) => rejectSum + Number(reject.rejectKg || 0),
+            0,
+          )
+        : 0),
     0,
   );
 
@@ -221,6 +206,12 @@ export default async function Home() {
       ? (totalPackhouseRejectKg / totalPackhouseProcessedKg) * 100
       : 0;
 
+  const totalLossKg = totalFieldRejectKg + totalPackhouseRejectKg;
+
+  const goodOutputPct =
+    totalPackhouseProcessedKg > 0
+      ? (totalPackhouseGoodKg / totalPackhouseProcessedKg) * 100
+      : 0;
   /*
    * ==========================================
    * REJECT REASONS DATA
@@ -256,6 +247,22 @@ export default async function Home() {
     kg: Number(item.rejectKg || 0),
   }));
 
+  const alerts: string[] = [];
+
+  if (fieldRejectPct >= 5) {
+    alerts.push(`Field reject rate is ${fieldRejectPct.toFixed(2)}%`);
+  }
+
+  if (packhouseRejectPct >= 5) {
+    alerts.push(`Packhouse reject rate is ${packhouseRejectPct.toFixed(2)}%`);
+  }
+
+  if (totalPackhouseProcessedKg === 0 && totalHarvestKg > 0) {
+    alerts.push(
+      "Harvest has been recorded but no packhouse processing has been recorded.",
+    );
+  }
+
   return (
     <main className="dashboard">
       {/* ======================================
@@ -268,6 +275,24 @@ export default async function Home() {
 
           <p>Harvest, field quality and packhouse performance</p>
         </div>
+      </div>
+
+      <div className="dashboard-actions">
+        <a href="/harvest" className="dashboard-action">
+          New Harvest
+        </a>
+
+        <a href="/packhouse" className="dashboard-action">
+          Packhouse
+        </a>
+
+        <a href="/reports" className="dashboard-action">
+          Reports
+        </a>
+
+        <a href="/verification" className="dashboard-action">
+          Verification
+        </a>
       </div>
 
       {/* ======================================
@@ -284,31 +309,15 @@ export default async function Home() {
         </div>
 
         <div className="dashboard-kpi">
-          <span>Field Rejects</span>
-
-          <strong>{totalFieldRejectKg.toLocaleString()} kg</strong>
-
-          <small>{fieldRejectPct.toFixed(2)}% of harvest</small>
-        </div>
-
-        <div className="dashboard-kpi">
           <span>Processed</span>
 
           <strong>{totalPackhouseProcessedKg.toLocaleString()} kg</strong>
 
-          <small>After field rejects</small>
+          <small>Packhouse processed</small>
         </div>
 
         <div className="dashboard-kpi">
-          <span>Packhouse Rejects</span>
-
-          <strong>{totalPackhouseRejectKg.toLocaleString()} kg</strong>
-
-          <small>{packhouseRejectPct.toFixed(2)}%</small>
-        </div>
-
-        <div className="dashboard-kpi">
-          <span>Imported</span>
+          <span>Exportable Product</span>
 
           <strong>
             {totalPackhouseGoodKg.toLocaleString(undefined, {
@@ -318,9 +327,67 @@ export default async function Home() {
             kg
           </strong>
 
-          <small>{packhouseRejectPct.toFixed(2)}% sold/imported.</small>
+          <small>{goodOutputPct.toFixed(2)}% of harvest.</small>
+        </div>
+
+        <div className="dashboard-kpi">
+          <span>Field Rejects</span>
+
+          <strong>{totalFieldRejectKg.toLocaleString()} kg</strong>
+
+          <small>{fieldRejectPct.toFixed(2)}% of harvest</small>
+        </div>
+
+        <div className="dashboard-kpi">
+          <span>Packhouse Rejects</span>
+
+          <strong>{totalPackhouseRejectKg.toLocaleString()} kg</strong>
+
+          <small>{packhouseRejectPct.toFixed(2)}% of processed product</small>
+        </div>
+
+        <div className="dashboard-kpi">
+          <span>Total Rejects</span>
+
+          <strong>
+            {totalLossKg.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}{" "}
+            kg
+          </strong>
+
+          <small>
+            {totalHarvestKg > 0
+              ? ((totalLossKg / totalHarvestKg) * 100).toFixed(2)
+              : "0.00"}
+            % of harvest
+          </small>
         </div>
       </section>
+
+      {/* ======================================
+          OPERATIONAL ALERTS
+      ====================================== */}
+
+      {alerts.length > 0 && (
+        <section className="dashboard-card dashboard-alerts">
+          <div className="dashboard-card-header">
+            <div>
+              <h2>Operational Alerts</h2>
+              <p>Items requiring attention</p>
+            </div>
+          </div>
+
+          <div className="dashboard-alert-list">
+            {alerts.map((alert, index) => (
+              <div key={index} className="dashboard-alert">
+                ⚠ {alert}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ======================================
           HARVEST TREND
@@ -336,7 +403,10 @@ export default async function Home() {
         </div>
 
         <div className="dashboard-chart large">
-          <HarvestTrendChart data={harvestData} />
+          <HarvestTrendChart
+            data={harvestData}
+            packhouseData={packhouseLoads}
+          />
         </div>
       </section>
 

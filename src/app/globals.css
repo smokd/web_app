@@ -840,7 +840,7 @@ table {
 .dashboard-kpis {
   display: grid;
   grid-template-columns:
-    repeat(5, minmax(0, 1fr));
+    repeat(3, minmax(0, 1fr));
 
   gap: 1rem;
   margin-bottom: 1.5rem;
@@ -856,11 +856,14 @@ table {
 
   display: flex;
   flex-direction: column;
+
 }
 
 .dashboard-kpi span {
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+
 }
 
 .dashboard-kpi strong {
