@@ -150,10 +150,13 @@ export function HarvestTrendChart({
             harvestedKg: 0,
             processedKg: 0,
             exportableKg: 0,
+            totalRejectKg: 0,
           };
         }
 
         acc[date].harvestedKg += harvestedKg;
+
+        acc[date].totalRejectKg += Number(item.totalRejectKg || 0);
 
         return acc;
       },
@@ -188,6 +191,7 @@ export function HarvestTrendChart({
         harvestedKg: 0,
         processedKg: 0,
         exportableKg: 0,
+        totalRejectKg: 0,
       });
     }
 
@@ -268,15 +272,17 @@ export function HarvestTrendChart({
           activeDot={{ r: 6 }}
         />
 
-        <Line
-          type="monotone"
-          dataKey="exportableKg"
-          name="Exportable Product"
-          stroke="#2c7ec4"
-          strokeWidth={3}
-          dot={{ r: 3 }}
-          activeDot={{ r: 6 }}
-        />
+        {
+          <Line
+            type="monotone"
+            dataKey="exportableKg"
+            name="Exportable Product"
+            stroke="#2c7ec4"
+            strokeWidth={3}
+            dot={{ r: 3 }}
+            activeDot={{ r: 6 }}
+          />
+        }
 
         <Line
           type="monotone"

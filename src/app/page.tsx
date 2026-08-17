@@ -21,11 +21,29 @@ export default async function Home() {
     },
 
     select: {
+      id: true,
       date: true,
       harvestedKg: true,
       fieldRejectPct: true,
       variety: true,
       fieldRejectsKg: true,
+
+      packhouseLoad: {
+        select: {
+          id: true,
+          date: true,
+          variety: true,
+          processedKg: true,
+
+          rejects: {
+            select: {
+              rejectType: true,
+              rejectKg: true,
+              rejectPct: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -112,22 +130,20 @@ export default async function Home() {
   const harvestData = filteredHarvests.map((h) => {
     const fieldRejectKg = Number(h.fieldRejectsKg || 0);
 
-    const processedKg =
-      h.packhouseLoad?.reduce(
-        (sum, load) => sum + Number(load.processedKg || 0),
-        0,
-      ) || 0;
+    const processedKg = h.packhouseLoad.reduce(
+      (sum, load) => sum + Number(load.processedKg || 0),
+      0,
+    );
 
-    const packhouseRejectKg =
-      h.packhouseLoad?.reduce(
-        (sum, load) =>
-          sum +
-          (load.rejects?.reduce(
-            (rejectSum, reject) => rejectSum + Number(reject.rejectKg || 0),
-            0,
-          ) || 0),
-        0,
-      ) || 0;
+    const packhouseRejectKg = h.packhouseLoad.reduce(
+      (sum, load) =>
+        sum +
+        load.rejects.reduce(
+          (rejectSum, reject) => rejectSum + Number(reject.rejectKg || 0),
+          0,
+        ),
+      0,
+    );
 
     const totalRejectKg = fieldRejectKg + packhouseRejectKg;
 
@@ -135,11 +151,13 @@ export default async function Home() {
 
     return {
       ...h,
+
       processedKg,
       fieldRejectKg,
       packhouseRejectKg,
       totalRejectKg,
       exportedKg,
+
       variety: {
         name: h.variety,
       },
