@@ -1236,17 +1236,42 @@ table {
 
 .harvest-grid {
   display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 1.25rem;
-  align-items: start;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1rem;
 }
 
-.harvest-grid .form-field {
-  min-width: 0;
+.harvest-grid > .form-field {
+  grid-column: span 6;
 }
 
-.harvest-grid .form-field.full-width {
-  grid-column: 1 / -1;
+.variety-harvest-card .harvest-grid > .form-field:nth-child(1) {
+  grid-column: span 4;
+}
+
+.variety-harvest-card .harvest-grid > .form-field:nth-child(2) {
+  grid-column: span 4;
+}
+
+.variety-harvest-card .harvest-grid > .form-field:nth-child(3) {
+  grid-column: span 4;
+}
+
+@media (max-width: 800px) {
+  .harvest-grid > .form-field,
+  .variety-harvest-card .harvest-grid > .form-field {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 560px) {
+  .harvest-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .harvest-grid > .form-field,
+  .variety-harvest-card .harvest-grid > .form-field {
+    grid-column: span 1;
+  }
 }
 
 .form-field {
@@ -1367,6 +1392,117 @@ table {
   text-decoration: underline;
 }
 
+.variety-harvest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.variety-harvest-card {
+  padding: 1.25rem;
+  border: 1px solid;
+  border-radius: 12px;
+  background:;
+}
+
+.variety-harvest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.variety-harvest-header h4 {
+  margin: 0.15rem 0 0;
+  font-size: 1.15rem;
+}
+
+.variety-number {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+}
+
+.variety-quality-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid;
+}
+
+.variety-quality-summary > div {
+  padding: 0.75rem;
+  border-radius: 8px;
+  background:;
+}
+
+.variety-quality-summary span {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.65;
+  margin-bottom: 0.25rem;
+}
+
+.variety-quality-summary strong {
+  font-size: 1rem;
+}
+
+.variety-reject-section {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid;
+}
+
+.subsection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.subsection-header h5 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.subsection-header p {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  opacity: 0.65;
+}
+
+.add-variety-button {
+  margin-top: 1rem;
+}
+
+.btn-small {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 700px) {
+  .variety-quality-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .subsection-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 450px) {
+  .variety-quality-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .harvest-grid {
     grid-template-columns: 1fr;
@@ -1392,6 +1528,28 @@ table {
 
   .form-input {
     min-height: 46px;
+  }
+}
+
+@media (max-width: 900px) {
+  .harvest-grid .form-field,
+  .harvest-grid .form-field:first-child,
+  .harvest-grid .form-field:nth-child(2),
+  .harvest-grid .form-field:nth-child(3) {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 600px) {
+  .harvest-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .harvest-grid .form-field,
+  .harvest-grid .form-field:first-child,
+  .harvest-grid .form-field:nth-child(2),
+  .harvest-grid .form-field:nth-child(3) {
+    grid-column: span 1;
   }
 }
 

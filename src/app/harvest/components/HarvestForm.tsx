@@ -285,12 +285,14 @@ export default function HarvestForm({
         <div className="form-section-header">
           <div>
             <h3>Harvest Details</h3>
-
-            <p>Enter the basic information for this harvest.</p>
+            <p>Enter the basic information for today's harvest.</p>
           </div>
+        </div>
+
+        <div className="harvest-grid">
           {/* DATE */}
           <div className="form-field">
-            <label htmlFor="date">Date</label>
+            <label htmlFor="date">Harvest Date</label>
 
             <input
               id="date"
@@ -314,167 +316,191 @@ export default function HarvestForm({
               value={supervisor}
               onChange={(e) => setSupervisor(e.target.value)}
               className="form-input"
+              placeholder="Enter supervisor name"
             />
           </div>
         </div>
+      </section>
 
-        <div className="harvest-grid">
-          {/* HARVEST */}
-          <section className="form-section">
-            <div className="form-section-header">
-              <div>
-                <h3>Harvest by Variety</h3>
+      <section className="form-section variety-section">
+        <div className="form-section-header">
+          <div>
+            <h3>Harvest by Variety</h3>
 
-                <p>
-                  Add each variety harvested today and record its field quality
-                  separately.
-                </p>
-              </div>
-            </div>
+            <p>
+              Add each variety harvested today and record its field quality
+              separately.
+            </p>
+          </div>
 
-            <div className="variety-harvest-list">
-              {varietyEntries.map((entry, index) => {
-                const harvestedKg = Number(entry.harvestedKg) || 0;
+          <div className="calculated-value">
+            <span>Total Harvest</span>
+            <strong>{totalHarvestedKg.toFixed(2)} kg</strong>
+          </div>
+        </div>
 
-                const fieldRejectKg = entry.fieldRejects.reduce((sum, row) => {
-                  const value = Number(row.inputValue) || 0;
+        <div className="variety-harvest-list">
+          {varietyEntries.map((entry, index) => {
+            const harvestedKg = Number(entry.harvestedKg) || 0;
 
-                  if (row.inputMode === "KG") {
-                    return sum + value;
-                  }
+            const fieldRejectKg = entry.fieldRejects.reduce((sum, row) => {
+              const value = Number(row.inputValue) || 0;
 
-                  return sum + (harvestedKg * value) / 100;
-                }, 0);
+              if (row.inputMode === "KG") {
+                return sum + value;
+              }
 
-                const rejectPct =
-                  harvestedKg > 0 ? (fieldRejectKg / harvestedKg) * 100 : 0;
+              return sum + (harvestedKg * value) / 100;
+            }, 0);
 
-                return (
-                  <div key={entry.id} className="variety-harvest-card">
-                    <div className="variety-harvest-header">
-                      <div>
-                        <h4>Variety {index + 1}</h4>
+            const rejectPct =
+              harvestedKg > 0 ? (fieldRejectKg / harvestedKg) * 100 : 0;
 
-                        <p>Production and field quality</p>
-                      </div>
+            const goodKg = Math.max(0, harvestedKg - fieldRejectKg);
 
-                      {varietyEntries.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeVariety(entry.id)}
-                          className="btn btn-danger"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
+            return (
+              <div key={entry.id} className="variety-harvest-card">
+                <div className="variety-harvest-header">
+                  <div>
+                    <span className="variety-number">Variety {index + 1}</span>
 
-                    <div className="harvest-grid">
-                      <div className="form-field">
-                        <label>Variety</label>
+                    <h4>{entry.variety || "New Variety"}</h4>
+                  </div>
 
-                        <select
-                          value={entry.variety}
-                          onChange={(e) =>
-                            updateVariety(entry.id, {
-                              variety: e.target.value,
-                            })
-                          }
-                          required
-                          className="form-input"
-                        >
-                          <option value="">Select variety</option>
+                  {varietyEntries.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeVariety(entry.id)}
+                      className="btn btn-danger btn-small"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
 
-                          {varieties.map((v) => (
-                            <option key={v.id} value={v.name}>
-                              {v.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                <div className="harvest-grid">
+                  {/* VARIETY */}
+                  <div className="form-field">
+                    <label>Variety</label>
 
-                      <div className="form-field">
-                        <label>Harvested Quantity</label>
-
-                        <div className="input-with-unit">
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={entry.harvestedKg}
-                            onChange={(e) =>
-                              updateVariety(entry.id, {
-                                harvestedKg: e.target.value,
-                              })
-                            }
-                            required
-                            className="form-input"
-                          />
-
-                          <span>kg</span>
-                        </div>
-                      </div>
-
-                      <div className="form-field">
-                        <label>Blocks</label>
-
-                        <input
-                          type="text"
-                          value={entry.blocks}
-                          onChange={(e) =>
-                            updateVariety(entry.id, {
-                              blocks: e.target.value,
-                            })
-                          }
-                          className="form-input"
-                          placeholder="e.g. 14,15,27&29"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="variety-quality-summary">
-                      <div>
-                        <span>Field Rejects</span>
-                        <strong>{fieldRejectKg.toFixed(2)} kg</strong>
-                      </div>
-
-                      <div>
-                        <span>Reject Rate</span>
-                        <strong>{rejectPct.toFixed(2)}%</strong>
-                      </div>
-
-                      <div>
-                        <span>Good Harvest</span>
-                        <strong>
-                          {Math.max(0, harvestedKg - fieldRejectKg).toFixed(2)}{" "}
-                          kg
-                        </strong>
-                      </div>
-                    </div>
-
-                    <FieldRejectSection
-                      fieldRejects={entry.fieldRejects}
-                      harvestedKg={harvestedKg}
-                      onChange={(rejects) =>
+                    <select
+                      value={entry.variety}
+                      onChange={(e) =>
                         updateVariety(entry.id, {
-                          fieldRejects: rejects,
+                          variety: e.target.value,
                         })
                       }
+                      required
+                      className="form-input"
+                    >
+                      <option value="">Select variety</option>
+
+                      {varieties.map((v) => (
+                        <option key={v.id} value={v.name}>
+                          {v.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* HARVESTED */}
+                  <div className="form-field">
+                    <label>Harvested Quantity</label>
+
+                    <div className="input-with-unit">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={entry.harvestedKg}
+                        onChange={(e) =>
+                          updateVariety(entry.id, {
+                            harvestedKg: e.target.value,
+                          })
+                        }
+                        required
+                        className="form-input"
+                        placeholder="0.00"
+                      />
+
+                      <span>kg</span>
+                    </div>
+                  </div>
+
+                  {/* BLOCKS */}
+                  <div className="form-field">
+                    <label>Blocks</label>
+
+                    <input
+                      type="text"
+                      value={entry.blocks}
+                      onChange={(e) =>
+                        updateVariety(entry.id, {
+                          blocks: e.target.value,
+                        })
+                      }
+                      className="form-input"
+                      placeholder="e.g. 14,15,27&29"
                     />
                   </div>
-                );
-              })}
-            </div>
+                </div>
 
-            <button
-              type="button"
-              onClick={addVariety}
-              className="btn btn-secondary"
-            >
-              + Add Another Variety
-            </button>
-          </section>
+                {/* QUALITY SUMMARY */}
+                <div className="variety-quality-summary">
+                  <div>
+                    <span>Harvested</span>
+                    <strong>{harvestedKg.toFixed(2)} kg</strong>
+                  </div>
+
+                  <div>
+                    <span>Field Rejects</span>
+                    <strong>{fieldRejectKg.toFixed(2)} kg</strong>
+                  </div>
+
+                  <div>
+                    <span>Reject Rate</span>
+                    <strong>{rejectPct.toFixed(2)}%</strong>
+                  </div>
+
+                  <div>
+                    <span>Good Harvest</span>
+                    <strong>{goodKg.toFixed(2)} kg</strong>
+                  </div>
+                </div>
+
+                {/* FIELD REJECT BREAKDOWN */}
+                <div className="variety-reject-section">
+                  <div className="subsection-header">
+                    <div>
+                      <h5>Field Reject Breakdown</h5>
+                      <p>Enter reject quantities in kg or percentage.</p>
+                    </div>
+
+                    <strong>{fieldRejectKg.toFixed(2)} kg rejected</strong>
+                  </div>
+
+                  <FieldRejectSection
+                    fieldRejects={entry.fieldRejects}
+                    harvestedKg={harvestedKg}
+                    onChange={(rejects) =>
+                      updateVariety(entry.id, {
+                        fieldRejects: rejects,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
+
+        <button
+          type="button"
+          onClick={addVariety}
+          className="btn btn-secondary add-variety-button"
+        >
+          + Add Another Variety
+        </button>
       </section>
 
       {/* =====================================
