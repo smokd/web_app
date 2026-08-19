@@ -43,7 +43,7 @@ model Harvest {
   createdAt      DateTime        @default(now())
   userId         Int?
   fieldRejects   FieldReject[]
-  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user           User?           @relation(fields: [userId], references: [id])
   packhouseLoad  PackhouseLoad[]
 }
 
@@ -67,7 +67,7 @@ model PackhouseLoad {
   processedKg Float
   notes       String?
   harvestId   Int?
-  harvest     Harvest?          @relation(fields: [harvestId], references: [id], onDelete: SetNull)
+  harvest     Harvest?          @relation(fields: [harvestId], references: [id], onDelete: Cascade)
   rejects     PackhouseReject[]
 }
 
@@ -102,8 +102,8 @@ model User {
   role         String     @default("USER")
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  harvests     Harvest[]
   auditLogs    AuditLog[]
+  harvests     Harvest[]
 }
 
 model ShelfLifeSample {
@@ -194,21 +194,19 @@ model ShelfLifeWeightCurve {
   @@unique([variety, day])
 }
 
-enum Role {
-  USER
-  ADMIN
-}
-
 model AuditLog {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-
-  userId Int?
-  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  userId      Int?
   action      String
   entity      String
   entityId    String?
   description String?
   changes     String?
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  USER
+  ADMIN
 }

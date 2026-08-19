@@ -377,11 +377,8 @@ export async function createHarvestRecord(formData: FormData) {
   const session = await requireAuth();
 
   const date = String(formData.get("date") || "").trim();
-
   const supervisor = String(formData.get("supervisor") || "").trim() || null;
-
   const notes = String(formData.get("notes") || "").trim() || null;
-
   const weather = String(formData.get("weather") || "").trim() || null;
 
   const weatherTemp = parseFiniteNumber(
@@ -411,81 +408,97 @@ export async function createHarvestRecord(formData: FormData) {
 
   const harvestEntries = parseHarvestEntries(formData.get("harvestEntries"));
 
-  if (!date || !variety) {
-    throw new Error("Date and variety are required");
+  if (harvestEntries.length === 0) {
+    throw new Error("At least one harvest variety is required");
   }
 
-  if (harvestedKg < 0) {
-    throw new Error("Harvested kg cannot be negative");
-  }
+  /*
+   * =========================================
+   * VALIDATE + RESOLVE HARVEST ENTRIES
+   * =========================================
+   */
+
+  const resolvedHarvestEntries = harvestEntries.map((entry) => {
+    const harvestedKg = Number(entry.harvestedKg);
+
+    if (!Number.isFinite(harvestedKg) || harvestedKg <= 0) {
+      throw new Error(`Harvested kg is invalid for ${entry.variety}`);
+    }
+
+    const totalFieldRejectKg = entry.fieldRejects.reduce((sum, reject) => {
+      const value = Number(reject.inputValue) || 0;
+
+      if (reject.inputMode === "KG") {
+        return sum + value;
+      }
+
+      return sum + (harvestedKg * value) / 100;
+    }, 0);
+
+    if (totalFieldRejectKg > harvestedKg + 0.01) {
+      throw new Error(
+        `Field rejects cannot exceed harvested kg for ${entry.variety}`,
+      );
+    }
+
+    const fieldRejectPct = calcRejectPct(entry.harvestedKg, totalFieldRejectKg);
+
+    const resolvedFieldRejects = resolveRejectBreakdown(
+      entry.fieldRejects,
+      totalFieldRejectKg,
+      `Field reject (${entry.variety})`,
+    );
+
+    return {
+      ...entry,
+      harvestedKg,
+      totalFieldRejectKg,
+      fieldRejectPct,
+      resolvedFieldRejects,
+    };
+  });
+
+  /*
+   * =========================================
+   * TOTAL HARVEST
+   * =========================================
+   */
+
+  const totalHarvestedKg = resolvedHarvestEntries.reduce(
+    (sum, entry) => sum + entry.harvestedKg,
+    0,
+  );
+
+  const totalFieldRejectKg = resolvedHarvestEntries.reduce(
+    (sum, entry) => sum + entry.totalFieldRejectKg,
+    0,
+  );
+
+  const totalFieldRejectPct = calcRejectPct(
+    totalHarvestedKg,
+    totalFieldRejectKg,
+  );
+
+  /*
+   * =========================================
+   * PACKHOUSE
+   * =========================================
+   */
 
   const packhouse = parsePackhouse(formData.get("packhouse"));
 
-  /* if (packhouse) {
-
-
-      const totalPackhouseRejectKg = parseFiniteNumber(
-  formData.get('packhouseRejectsKg'),
-  'Packhouse rejects kg',
-  0
-    );
-
-    if (
-      totalPackhouseRejectKg >
-      packhouse.processedKg
-    ) {
-      throw new Error(
-        'Packhouse rejects cannot exceed processed kg'
-      );
-    }
-  }  */
-
-  let totalPackhouseRejectKg = 0;
-
-  let resolvedPackhouseRejects: ReturnType<typeof resolveRejectBreakdown> = [];
-
-  /* if (packhouse) {
-  totalPackhouseRejectKg = parseFiniteNumber(
-    formData.get('packhouseRejectsKg'),
-    'Packhouse rejects kg',
-    0
-  );
-
-  if (
-    totalPackhouseRejectKg >
-    packhouse.processedKg
-  ) {
-    throw new Error(
-      'Packhouse rejects cannot exceed processed kg'
-    );
-  }
-
-  resolvedPackhouseRejects =
-    resolveRejectBreakdown(
-      packhouse.rejects,
-      totalPackhouseRejectKg,
-      'Packhouse reject'
-    );
-} */
-
-  let packhouseEntries = packhouse?.entries ?? [];
-
-  /* for (const entry of packhouseEntries) {
-    if (entry.processedKg <= 0) {
-      continue;
-    }
-
-    if (entry.rejectKg > entry.processedKg + 0.01) {
-      throw new Error(
-        `Packhouse rejects cannot exceed processed kg for ${entry.variety}`,
-      );
-    }
-  } */
+  const packhouseEntries = packhouse?.entries ?? [];
 
   const resolvedPackhouseEntries = packhouseEntries.map((entry) => {
     if (entry.processedKg < 0) {
       throw new Error(
         `Packhouse processed kg cannot be negative for ${entry.variety}`,
+      );
+    }
+
+    if (entry.rejectKg < 0) {
+      throw new Error(
+        `Packhouse rejects cannot be negative for ${entry.variety}`,
       );
     }
 
@@ -507,148 +520,159 @@ export async function createHarvestRecord(formData: FormData) {
     };
   });
 
-  /* const resolvedPackhouseRejects =
-  resolveRejectBreakdown(
-    packhouse.rejects,
-    totalPackhouseRejectKg,
-    'Packhouse reject'
-  ); */
+  /*
+   * =========================================
+   * DATABASE TRANSACTION
+   * =========================================
+   */
 
-  const fieldRejectPct = calcRejectPct(harvestedKg, totalFieldRejectKg);
+  const createdHarvestIds = await prisma.$transaction(async (tx) => {
+    const ids: number[] = [];
 
-  const createdHarvestIds: number[] = [];
+    /*
+     * Create one harvest record per variety
+     */
 
-  for (const entry of harvestEntries) {
-    const totalFieldRejectKg = entry.fieldRejects.reduce((sum, reject) => {
-      if (reject.inputMode === "KG") {
-        return sum + reject.inputValue;
-      }
+    for (const entry of resolvedHarvestEntries) {
+      const harvest = await tx.harvest.create({
+        data: {
+          date,
+          variety: entry.variety,
+          harvestedKg: entry.harvestedKg,
+          fieldRejectsKg: entry.totalFieldRejectKg,
+          fieldRejectPct: entry.fieldRejectPct,
+          blocks: entry.blocks ?? null,
+          supervisor,
+          notes,
+          weather,
+          weatherTemp,
+          weatherLat,
+          weatherLon,
+          weatherSource,
+          userId: session.userId,
+        },
+      });
 
-      return sum + (entry.harvestedKg * reject.inputValue) / 100;
-    }, 0);
+      ids.push(harvest.id);
 
-    if (totalFieldRejectKg > entry.harvestedKg + 0.01) {
-      throw new Error(
-        `Field rejects cannot exceed harvested kg for ${entry.variety}`,
-      );
-    }
+      /*
+       * Field reject breakdown
+       */
 
-    const fieldRejectPct = calcRejectPct(entry.harvestedKg, totalFieldRejectKg);
-
-    const resolvedFieldRejects = resolveRejectBreakdown(
-      entry.fieldRejects,
-      totalFieldRejectKg,
-      `Field reject (${entry.variety})`,
-    );
-
-    try {
-      await prisma.$transaction(async (tx) => {
-        const harvest = await tx.harvest.create({
-          data: {
+      if (entry.resolvedFieldRejects.length > 0) {
+        await tx.fieldReject.createMany({
+          data: entry.resolvedFieldRejects.map((reject) => ({
             date,
             variety: entry.variety,
-            harvestedKg: entry.harvestedKg,
-            fieldRejectsKg: totalFieldRejectKg,
-            fieldRejectPct,
-            blocks: entry.blocks ?? null,
-            supervisor,
-            notes,
-            weather,
-            weatherTemp,
-            weatherLat,
-            weatherLon,
-            weatherSource,
-            userId: session.userId,
-          },
+            rejectType: reject.rejectType,
+            inputMode: reject.inputMode,
+            inputValue: reject.inputValue,
+            rejectKg: reject.rejectKg,
+            rejectPct: reject.rejectPct,
+            harvestId: harvest.id,
+          })),
         });
-
-        createdHarvestIds.push(harvest.id);
-
-        if (resolvedFieldRejects.length > 0) {
-          await tx.fieldReject.createMany({
-            data: resolvedFieldRejects.map((reject) => ({
-              date,
-              variety: entry.variety,
-              rejectType: reject.rejectType,
-              inputMode: reject.inputMode,
-              inputValue: reject.inputValue,
-              rejectKg: reject.rejectKg,
-              rejectPct: reject.rejectPct,
-              harvestId: harvest.id,
-            })),
-          });
-        }
-
-        for (const entry of resolvedPackhouseEntries) {
-          if (entry.processedKg <= 0) {
-            continue;
-          }
-
-          const load = await tx.packhouseLoad.create({
-            data: {
-              date,
-              variety: entry.variety,
-              processedKg: entry.processedKg,
-              notes: entry.notes ?? null,
-              harvestId: harvest.id,
-            },
-          });
-
-          if (entry.resolvedRejects.length > 0) {
-            await tx.packhouseReject.createMany({
-              data: entry.resolvedRejects.map((reject) => ({
-                date,
-                variety: entry.variety,
-                rejectType: reject.rejectType,
-                inputMode: reject.inputMode,
-                inputValue: reject.inputValue,
-                rejectKg: reject.rejectKg,
-                rejectPct: reject.rejectPct,
-                notes: entry.notes ?? null,
-                packhouseLoadId: load.id,
-              })),
-            });
-          }
-        }
-
-        await createAuditLog({
-          userId: session.userId,
-          action: "CREATE",
-          entity: "HARVEST",
-          entityId: createdHarvestIds[0]!,
-          description: `Created ${createdHarvestIds.length} harvest record${
-            createdHarvestIds.length === 1 ? "" : "s"
-          }`,
-          changes: {
-            date,
-            varieties: harvestEntries.map((entry) => ({
-              variety: entry.variety,
-              harvestedKg: entry.harvestedKg,
-              blocks: entry.blocks,
-              fieldRejects: entry.fieldRejects,
-            })),
-            supervisor,
-          },
-        });
-      });
-    } catch (error) {
-      console.error("Failed to create harvest record:", error);
-
-      throw new Error(
-        error instanceof Error
-          ? error.message
-          : "Failed to save harvest record. No changes were made.",
-      );
+      }
     }
 
-    revalidatePath("/harvest");
-    revalidatePath("/dashboard");
+    /*
+     * =========================================
+     * PACKHOUSE RECORDS
+     * =========================================
+     *
+     * Packhouse entries should normally belong to
+     * the corresponding harvest variety.
+     */
 
-    return {
-      success: true,
-      harvestIds: createdHarvestIds,
-    };
-  }
+    for (const entry of resolvedPackhouseEntries) {
+      if (entry.processedKg <= 0) {
+        continue;
+      }
+
+      /*
+       * Find the harvest created for this variety.
+       */
+
+      const load = await tx.packhouseLoad.create({
+        data: {
+          date,
+          variety: entry.variety,
+          processedKg: entry.processedKg,
+          notes: entry.notes ?? null,
+          harvestId: null,
+        },
+      });
+
+      if (entry.resolvedRejects.length > 0) {
+        await tx.packhouseReject.createMany({
+          data: entry.resolvedRejects.map((reject) => ({
+            date,
+            variety: entry.variety,
+            rejectType: reject.rejectType,
+            inputMode: reject.inputMode,
+            inputValue: reject.inputValue,
+            rejectKg: reject.rejectKg,
+            rejectPct: reject.rejectPct,
+            notes: entry.notes ?? null,
+            packhouseLoadId: load.id,
+          })),
+        });
+      }
+    }
+
+    return ids;
+  });
+
+  /*
+   * =========================================
+   * AUDIT
+   * =========================================
+   */
+
+  await createAuditLog({
+    userId: session.userId,
+    action: "CREATE",
+    entity: "HARVEST",
+    entityId: createdHarvestIds[0]!,
+    description: `Created ${createdHarvestIds.length} harvest record${
+      createdHarvestIds.length === 1 ? "" : "s"
+    }`,
+    changes: {
+      date,
+      totalHarvestedKg,
+      totalFieldRejectKg,
+      totalFieldRejectPct,
+      varieties: resolvedHarvestEntries.map((entry) => ({
+        variety: entry.variety,
+        harvestedKg: entry.harvestedKg,
+        blocks: entry.blocks,
+        fieldRejectsKg: entry.totalFieldRejectKg,
+        fieldRejectPct: entry.fieldRejectPct,
+        fieldRejects: entry.fieldRejects,
+      })),
+      packhouse: resolvedPackhouseEntries.map((entry) => ({
+        variety: entry.variety,
+        processedKg: entry.processedKg,
+        rejectKg: entry.rejectKg,
+        rejects: entry.rejects,
+      })),
+      supervisor,
+    },
+  });
+
+  /*
+   * =========================================
+   * REVALIDATE
+   * =========================================
+   */
+
+  revalidatePath("/harvest");
+  revalidatePath("/dashboard");
+
+  return {
+    success: true,
+    harvestIds: createdHarvestIds,
+  };
 }
 
 export async function updateHarvestRecord(formData: FormData) {

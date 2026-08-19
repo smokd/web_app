@@ -1,0 +1,134 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+
+  background: var(--neutral-1);
+  color: var(--text-primary);
+
+  font-family: var(--font-sans);
+  line-height: 1.6;
+
+  overflow-x: hidden;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+a:hover {
+  color: var(--primary-light);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  border-radius: var(--radius-md);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.container {
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.glass-panel {
+  background: var(--glass);
+
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+
+  padding: 24px;
+
+  box-shadow: 0 8px 32px var(--glass-border);
+
+  transition: all var(--transition);
+}
+
+.glass-panel:hover {
+  transform: translateY(-2px);
+}
+
+.graph {
+  background: var(--neutral-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 10;
+
+  max-width: 200px;
+
+  background: var(--neutral-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+
+  padding: 0.5rem 1rem;
+
+  font-size: 0.9rem;
+
+  box-shadow: 0 2px 4px var(--glass-border);
+}
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 1rem;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

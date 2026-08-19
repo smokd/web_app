@@ -53,6 +53,9 @@ export default function HarvestForm({
     variety: string;
     harvestedKg: string;
     blocks: string;
+    fieldRejectInputMode: "KG" | "PERCENT";
+    totalFieldRejectKg: string;
+
     fieldRejects: RejectRow[];
   };
 
@@ -61,6 +64,8 @@ export default function HarvestForm({
     variety: "",
     harvestedKg: "",
     blocks: "",
+    fieldRejectInputMode: "KG",
+    totalFieldRejectKg: "",
     fieldRejects: [],
   });
 
@@ -129,15 +134,19 @@ export default function HarvestForm({
     0,
   );
 
-  const totalFieldRejectKg = varietyEntries.reduce(
-    (sum, entry) =>
-      sum +
-      entry.fieldRejects.reduce(
-        (rejectSum, row) => rejectSum + (Number(row.inputValue) || 0),
-        0,
-      ),
-    0,
-  );
+  const totalFieldRejectKg = varietyEntries.reduce((sum, entry) => {
+    const harvestedKg = Number(entry.harvestedKg) || 0;
+
+    const fieldRejectKg =
+      entry.fieldRejectInputMode === "PERCENT"
+        ? Number(entry.totalFieldRejectKg) || 0
+        : entry.fieldRejects.reduce(
+            (rejectSum, row) => rejectSum + (Number(row.inputValue) || 0),
+            0,
+          );
+
+    return sum + fieldRejectKg;
+  }, 0);
 
   const totalFieldRejectPct =
     totalHarvestedKg > 0 ? (totalFieldRejectKg / totalHarvestedKg) * 100 : 0;
@@ -169,14 +178,17 @@ export default function HarvestForm({
   async function handleSubmit(formData: FormData) {
     setMessage("");
 
-    const harvested = Number(harvestedKg) || 0;
+    const totalHarvested = varietyEntries.reduce(
+      (sum, entry) => sum + (Number(entry.harvestedKg) || 0),
+      0,
+    );
 
-    if (harvested <= 0) {
+    if (totalHarvested <= 0) {
       setMessage("Please enter a valid harvested quantity.");
       return;
     }
 
-    if (totalFieldRejectKg > harvested) {
+    if (totalFieldRejectKg > totalHarvested) {
       setMessage("Field rejects cannot exceed the harvested quantity.");
       return;
     }
@@ -202,11 +214,11 @@ export default function HarvestForm({
           : 0,
     }));
 */
-    const fieldRejectsData = fieldRejects.map((row) => ({
+    /* const fieldRejectsData = fieldRejects.map((row) => ({
       rejectType: row.rejectType,
       inputMode: row.inputMode,
       inputValue: Number(row.inputValue) || 0,
-    }));
+    })); */
 
     const harvestEntries = varietyEntries.map((entry) => ({
       variety: entry.variety,
@@ -242,13 +254,18 @@ export default function HarvestForm({
 
         /* Reset form */
 
-        setVariety("");
-        setHarvestedKg("");
-        setBlocks("");
+        setVarietyEntries([createVarietyEntry()]);
         setSupervisor("");
         setNotes("");
+        setPackhouseEntries([]);
 
-        setFieldRejects([]);
+        setWeather({
+          condition: "",
+          temp: 0,
+          lat: null,
+          lon: null,
+          source: "manual",
+        });
 
         /* setProcessedKg(0);
         setPackhouseRejects([]); */
@@ -343,7 +360,7 @@ export default function HarvestForm({
           {varietyEntries.map((entry, index) => {
             const harvestedKg = Number(entry.harvestedKg) || 0;
 
-            const fieldRejectKg = entry.fieldRejects.reduce((sum, row) => {
+            /* const fieldRejectKg = entry.fieldRejects.reduce((sum, row) => {
               const value = Number(row.inputValue) || 0;
 
               if (row.inputMode === "KG") {
@@ -351,12 +368,20 @@ export default function HarvestForm({
               }
 
               return sum + (harvestedKg * value) / 100;
-            }, 0);
+            }, 0); */
+
+            const fieldRejectKg =
+              entry.fieldRejectInputMode === "PERCENT"
+                ? Number(entry.totalFieldRejectKg) || 0
+                : entry.fieldRejects.reduce(
+                    (sum, reject) => sum + (Number(reject.inputValue) || 0),
+                    0,
+                  );
 
             const rejectPct =
               harvestedKg > 0 ? (fieldRejectKg / harvestedKg) * 100 : 0;
 
-            const goodKg = Math.max(0, harvestedKg - fieldRejectKg);
+            const goodKg = Math.max(harvestedKg - fieldRejectKg, 0);
 
             return (
               <div key={entry.id} className="variety-harvest-card">
@@ -454,7 +479,6 @@ export default function HarvestForm({
 
                   <div>
                     <span>Field Rejects</span>
-                    <strong>{fieldRejectKg.toFixed(2)} kg</strong>
                   </div>
 
                   <div>
@@ -473,7 +497,7 @@ export default function HarvestForm({
                   <div className="subsection-header">
                     <div>
                       <h5>Field Reject Breakdown</h5>
-                      <p>Enter reject quantities in kg or percentage.</p>
+                      <p>Record the reject breakdown for this variety.</p>
                     </div>
 
                     <strong>{fieldRejectKg.toFixed(2)} kg rejected</strong>
@@ -482,6 +506,18 @@ export default function HarvestForm({
                   <FieldRejectSection
                     fieldRejects={entry.fieldRejects}
                     harvestedKg={harvestedKg}
+                    inputMode={entry.fieldRejectInputMode}
+                    totalFieldRejectKg={entry.totalFieldRejectKg}
+                    onInputModeChange={(inputMode) =>
+                      updateVariety(entry.id, {
+                        fieldRejectInputMode: inputMode,
+                      })
+                    }
+                    onTotalFieldRejectKgChange={(totalFieldRejectKg) =>
+                      updateVariety(entry.id, {
+                        totalFieldRejectKg,
+                      })
+                    }
                     onChange={(rejects) =>
                       updateVariety(entry.id, {
                         fieldRejects: rejects,

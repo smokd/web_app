@@ -1,0 +1,1281 @@
+/* =========================================================
+   HARVEST FORM
+========================================================= */
+
+.harvest-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* =========================================================
+   FORM SECTIONS
+========================================================= */
+
+.form-section {
+  width: 100%;
+  padding: 1.25rem;
+  box-sizing: border-box;
+
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.form-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  margin-bottom: 1.25rem;
+}
+
+.form-section-header > div:first-child {
+  min-width: 0;
+}
+
+.form-section-header h3 {
+  margin: 0;
+
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.form-section-header p {
+  margin: 0.3rem 0 0;
+
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+/* =========================================================
+   HARVEST GRID
+========================================================= */
+
+.harvest-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.harvest-grid > .form-field {
+  grid-column: span 6;
+}
+
+.variety-harvest-card .harvest-grid > .form-field {
+  grid-column: span 4;
+}
+
+/* =========================================================
+   FORM FIELDS
+========================================================= */
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+
+  min-width: 0;
+}
+
+.form-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.form-input {
+  width: 100%;
+  min-height: 44px;
+
+  padding: 0.7rem 0.75rem;
+  box-sizing: border-box;
+
+  background: var(--neutral-1);
+  color: var(--text-primary);
+
+  border: 1px solid var(--border);
+  border-radius: 7px;
+
+  font-family: inherit;
+  font-size: 0.9rem;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.form-input:hover {
+  border-color: var(--primary);
+}
+
+.form-input:focus {
+  border-color: var(--primary);
+
+  box-shadow: 0 0 0 2px rgba(10, 197, 178, 0.15);
+}
+
+/* =========================================================
+   INPUT WITH UNIT
+========================================================= */
+
+.input-with-unit {
+  position: relative;
+  width: 100%;
+}
+
+.input-with-unit .form-input {
+  padding-right: 3rem;
+}
+
+.input-with-unit span {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   VARIETY SECTION
+========================================================= */
+
+.variety-section {
+  background: var(--glass);
+}
+
+.variety-harvest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.variety-harvest-card {
+  width: 100%;
+  padding: 1.25rem;
+  box-sizing: border-box;
+
+  background: var(--neutral-1);
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.variety-harvest-card:hover {
+  border-color: rgba(10, 197, 178, 0.35);
+
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+}
+
+.variety-harvest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.variety-number {
+  display: block;
+
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  color: var(--text-secondary);
+}
+
+.variety-harvest-header h4 {
+  margin: 0.2rem 0 0;
+
+  font-size: 1.1rem;
+  font-weight: 700;
+
+  color: var(--text-primary);
+}
+
+/* =========================================================
+   VARIETY QUALITY SUMMARY
+========================================================= */
+
+.variety-quality-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+
+  border-top: 1px solid var(--border);
+}
+
+.variety-quality-summary > div {
+  min-width: 0;
+
+  padding: 0.75rem;
+
+  background: rgba(255, 255, 255, 0.035);
+
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.variety-quality-summary span {
+  display: block;
+
+  margin-bottom: 0.3rem;
+
+  font-size: 0.7rem;
+  font-weight: 600;
+
+  color: var(--text-secondary);
+}
+
+.variety-quality-summary strong {
+  display: block;
+
+  font-size: 0.95rem;
+  font-weight: 700;
+
+  color: var(--primary);
+}
+
+/* =========================================================
+   FIELD REJECT SECTION
+========================================================= */
+
+.variety-reject-section {
+  margin-top: 1rem;
+  padding: 1rem;
+
+  background: rgba(255, 255, 255, 0.025);
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.subsection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.subsection-header h5 {
+  margin: 0;
+
+  font-size: 0.9rem;
+  font-weight: 700;
+
+  color: var(--text-primary);
+}
+
+.subsection-header p {
+  margin: 0.25rem 0 0;
+
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.subsection-header > strong {
+  flex-shrink: 0;
+
+  font-size: 0.85rem;
+  color: var(--primary);
+}
+
+/* =========================================================
+   FIELD REJECT HEADER
+========================================================= */
+
+.field-reject-section {
+  width: 100%;
+}
+
+.field-reject-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.field-reject-title {
+  margin: 0;
+
+  font-size: 0.9rem;
+  font-weight: 700;
+
+  color: var(--text-primary);
+}
+
+/* =========================================================
+   FIELD REJECT INPUT MODE
+========================================================= */
+
+.field-reject-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+
+  margin-bottom: 1rem;
+}
+
+.field-reject-mode label {
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  color: var(--text-secondary);
+}
+
+.field-reject-mode-options {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.field-reject-mode-button {
+  min-height: 38px;
+
+  padding: 0.5rem 1rem;
+
+  background: var(--neutral-1);
+  color: var(--text-secondary);
+
+  border: 1px solid var(--border);
+  border-radius: 7px;
+
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.field-reject-mode-button:hover {
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
+.field-reject-mode-button.active {
+  background: rgba(10, 197, 178, 0.12);
+
+  border-color: var(--primary);
+
+  color: var(--primary);
+}
+
+/* =========================================================
+   TOTAL REJECT INPUT
+========================================================= */
+
+.total-field-reject {
+  margin-bottom: 1rem;
+  padding: 0.9rem;
+
+  background: rgba(10, 197, 178, 0.06);
+
+  border: 1px solid rgba(10, 197, 178, 0.2);
+  border-radius: 8px;
+}
+
+.total-field-reject label {
+  display: block;
+
+  margin-bottom: 0.45rem;
+
+  font-size: 0.78rem;
+  font-weight: 600;
+
+  color: var(--text-secondary);
+}
+
+.total-field-reject-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.total-field-reject-input .form-input {
+  max-width: 220px;
+}
+
+.total-field-reject-input span {
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  color: var(--text-secondary);
+}
+
+/* =========================================================
+   FIELD REJECT ROWS
+========================================================= */
+
+.field-reject-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.field-reject-row {
+  display: grid;
+  grid-template-columns:
+    minmax(180px, 1fr)
+    minmax(120px, 0.7fr)
+    minmax(80px, 0.45fr)
+    auto;
+
+  align-items: end;
+
+  gap: 0.75rem;
+
+  padding: 0.75rem;
+
+  background: var(--neutral-1);
+
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.field-reject-row label {
+  display: block;
+
+  margin-bottom: 0.4rem;
+
+  font-size: 0.72rem;
+  font-weight: 600;
+
+  color: var(--text-secondary);
+}
+
+.field-reject-row select,
+.field-reject-row input {
+  width: 100%;
+  min-height: 40px;
+
+  padding: 0.6rem 0.65rem;
+  box-sizing: border-box;
+
+  background: var(--glass);
+  color: var(--text-primary);
+
+  border: 1px solid var(--border);
+  border-radius: 6px;
+
+  font-family: inherit;
+  font-size: 0.82rem;
+}
+
+.field-reject-row select:focus,
+.field-reject-row input:focus {
+  outline: none;
+
+  border-color: var(--primary);
+
+  box-shadow: 0 0 0 2px rgba(10, 197, 178, 0.12);
+}
+
+.reject-percent {
+  min-height: 40px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 0.65rem;
+  box-sizing: border-box;
+
+  background: rgba(10, 197, 178, 0.06);
+
+  border: 1px solid var(--border);
+  border-radius: 6px;
+
+  font-size: 0.82rem;
+  font-weight: 600;
+
+  color: var(--primary);
+}
+
+.remove-defect-btn {
+  width: 40px;
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: transparent;
+
+  border: 1px solid var(--border);
+  border-radius: 6px;
+
+  color: var(--text-secondary);
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.remove-defect-btn:hover {
+  color: #ef5350;
+
+  border-color: rgba(239, 83, 80, 0.4);
+
+  background: rgba(239, 83, 80, 0.08);
+}
+
+/* =========================================================
+   FIELD REJECT EMPTY
+========================================================= */
+
+.field-reject-empty {
+  margin: 0;
+  padding: 0.75rem;
+
+  background: rgba(255, 255, 255, 0.025);
+
+  border: 1px dashed var(--border);
+  border-radius: 7px;
+
+  text-align: center;
+
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+/* =========================================================
+   FIELD REJECT SUMMARY
+========================================================= */
+
+.field-reject-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 0.65rem;
+
+  margin-top: 0.75rem;
+}
+
+.field-reject-summary > div {
+  padding: 0.7rem;
+
+  background: rgba(255, 255, 255, 0.025);
+
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.field-reject-summary span {
+  display: block;
+
+  margin-bottom: 0.2rem;
+
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.field-reject-summary strong {
+  font-size: 0.9rem;
+  color: var(--primary);
+}
+
+.reject-warning {
+  border-color: rgba(239, 83, 80, 0.4);
+}
+
+.reject-warning-message {
+  grid-column: 1 / -1;
+
+  color: #ef5350 !important;
+
+  font-size: 0.78rem !important;
+}
+
+/* =========================================================
+   ADD BUTTONS
+========================================================= */
+
+.add-variety-button {
+  margin-top: 1rem;
+}
+
+.add-defect-btn {
+  flex-shrink: 0;
+}
+
+.btn-small {
+  padding: 0.4rem 0.75rem;
+
+  font-size: 0.78rem;
+}
+
+/* =========================================================
+   TOTAL QUALITY SUMMARY
+========================================================= */
+
+.quality-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  gap: 0.75rem;
+
+  padding: 1rem;
+
+  background: rgba(10, 197, 178, 0.07);
+
+  border: 1px solid rgba(10, 197, 178, 0.22);
+  border-radius: 10px;
+}
+
+.quality-summary div {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  padding: 0.7rem;
+}
+
+.quality-summary span {
+  font-size: 0.7rem;
+  font-weight: 600;
+
+  color: var(--text-secondary);
+}
+
+.quality-summary strong {
+  font-size: 1.05rem;
+  font-weight: 700;
+
+  color: var(--primary);
+}
+
+/* =========================================================
+   CALCULATED VALUE
+========================================================= */
+
+.calculated-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  flex-shrink: 0;
+}
+
+.calculated-value span {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.calculated-value strong {
+  font-size: 0.95rem;
+  color: var(--primary);
+}
+
+/* =========================================================
+   MESSAGES
+========================================================= */
+
+.form-message {
+  padding: 0.75rem 1rem;
+
+  border-radius: 7px;
+
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.form-message.success {
+  background: rgba(46, 125, 50, 0.12);
+
+  color: #66bb6a;
+
+  border: 1px solid rgba(46, 125, 50, 0.3);
+}
+
+.form-message.error {
+  background: rgba(198, 40, 40, 0.12);
+
+  color: #ef5350;
+
+  border: 1px solid rgba(198, 40, 40, 0.3);
+}
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+
+  padding-top: 0.5rem;
+}
+
+.save-button {
+  min-width: 220px;
+
+  padding: 0.8rem 1.5rem;
+
+  font-size: 0.9rem;
+}
+
+/* =========================================================
+   RESPONSIVE — TABLET
+========================================================= */
+
+@media (max-width: 900px) {
+  .harvest-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .harvest-grid > .form-field,
+  .variety-harvest-card .harvest-grid > .form-field {
+    grid-column: span 1;
+  }
+
+  .variety-quality-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quality-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .field-reject-row {
+    grid-template-columns:
+      minmax(160px, 1fr)
+      minmax(110px, 0.7fr)
+      minmax(80px, 0.45fr)
+      auto;
+  }
+}
+
+/* =========================================================
+   RESPONSIVE — MOBILE
+========================================================= */
+
+@media (max-width: 650px) {
+  .form-section {
+    padding: 1rem;
+  }
+
+  .variety-harvest-card {
+    padding: 1rem;
+  }
+
+  .harvest-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .harvest-grid > .form-field,
+  .variety-harvest-card .harvest-grid > .form-field {
+    grid-column: span 1;
+  }
+
+  .form-section-header,
+  .variety-harvest-header,
+  .subsection-header,
+  .field-reject-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .calculated-value {
+    align-items: flex-start;
+  }
+
+  .variety-quality-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quality-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .field-reject-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .field-reject-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .field-reject-row > div {
+    width: 100%;
+  }
+
+  .remove-defect-btn {
+    width: 100%;
+  }
+
+  .field-reject-mode-options {
+    width: 100%;
+  }
+
+  .field-reject-mode-button {
+    flex: 1;
+  }
+
+  .total-field-reject-input .form-input {
+    max-width: none;
+  }
+
+  .form-actions {
+    justify-content: stretch;
+  }
+
+  .save-button {
+    width: 100%;
+    min-width: 0;
+  }
+}
+/* =========================================================
+   PACKHOUSE SECTION — HARVEST FORM
+========================================================= */
+
+.packhouse-section {
+  width: 100%;
+  margin-top: 0;
+}
+
+/* ================================
+   HEADER
+================================ */
+
+.packhouse-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.packhouse-title {
+  margin: 0;
+
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.packhouse-subtitle {
+  margin: 0.3rem 0 0;
+
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* ================================
+   ENTRY LIST
+================================ */
+
+.packhouse-entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ================================
+   ENTRY CARD
+================================ */
+
+.packhouse-entry-card {
+  padding: 1.25rem;
+
+  background: var(--neutral-1);
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* ================================
+   ENTRY HEADER
+================================ */
+
+.packhouse-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+
+  padding-bottom: 0.9rem;
+
+  border-bottom: 1px solid var(--border);
+}
+
+.packhouse-entry-number {
+  display: block;
+
+  font-size: 0.7rem;
+  font-weight: 600;
+
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.packhouse-entry-header h4 {
+  margin: 0.15rem 0 0;
+
+  font-size: 1.05rem;
+}
+
+/* ================================
+   BASIC PACKHOUSE GRID
+================================ */
+
+.packhouse-grid {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1.5fr)
+    minmax(160px, 1fr)
+    minmax(160px, 1fr);
+
+  gap: 1rem;
+}
+
+/* ================================
+   PACKHOUSE QUALITY SUMMARY
+================================ */
+
+.packhouse-quality-summary {
+  display: grid;
+
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  gap: 0.75rem;
+
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+
+  border-top: 1px solid var(--border);
+}
+
+.packhouse-quality-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  padding: 0.75rem;
+
+  background: rgba(255, 255, 255, 0.04);
+
+  border-radius: 8px;
+}
+
+.packhouse-quality-summary span {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.packhouse-quality-summary strong {
+  font-size: 0.95rem;
+  color: var(--primary);
+}
+
+/* ================================
+   REJECT SECTION
+================================ */
+
+.packhouse-reject-section {
+  margin-top: 1.25rem;
+  padding-top: 1.1rem;
+
+  border-top: 1px solid var(--border);
+}
+
+.packhouse-reject-section .subsection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.packhouse-reject-section h5 {
+  margin: 0;
+
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.packhouse-reject-section p {
+  margin: 0.25rem 0 0;
+
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* ================================
+   NO REJECTS
+================================ */
+
+.packhouse-no-rejects {
+  padding: 0.9rem;
+
+  text-align: center;
+
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+
+  color: var(--text-secondary);
+}
+
+/* ================================
+   REJECT LIST
+================================ */
+
+.packhouse-reject-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 0.75rem;
+}
+
+/* ================================
+   REJECT ROW
+================================ */
+
+.packhouse-reject-row {
+  display: grid;
+
+  grid-template-columns:
+    minmax(160px, 1.5fr)
+    minmax(90px, 0.65fr)
+    minmax(130px, 0.9fr)
+    minmax(120px, 0.8fr)
+    minmax(100px, 0.7fr)
+    auto;
+
+  gap: 0.75rem;
+
+  align-items: end;
+
+  padding: 0.85rem;
+
+  background: var(--neutral-2);
+
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.packhouse-reject-row .form-field {
+  min-width: 0;
+}
+
+/* ================================
+   CALCULATED VALUES
+================================ */
+
+.calculated-field {
+  display: flex;
+  align-items: center;
+
+  min-height: 44px;
+
+  padding: 0.7rem 0.75rem;
+
+  box-sizing: border-box;
+
+  background: rgba(10, 197, 178, 0.08);
+
+  border: 1px solid rgba(10, 197, 178, 0.18);
+  border-radius: 7px;
+
+  color: var(--primary);
+
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ================================
+   WARNINGS
+================================ */
+
+.packhouse-warning {
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.9rem;
+
+  background: rgba(198, 40, 40, 0.08);
+
+  border: 1px solid rgba(198, 40, 40, 0.2);
+  border-radius: 7px;
+
+  color: #ef5350;
+
+  font-size: 0.78rem;
+}
+
+.packhouse-warning strong {
+  font-weight: 700;
+}
+
+/* ================================
+   EMPTY STATE
+================================ */
+
+.packhouse-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 0.3rem;
+
+  padding: 1.5rem;
+
+  text-align: center;
+
+  border: 1px dashed var(--border);
+  border-radius: 9px;
+
+  color: var(--text-secondary);
+}
+
+.packhouse-empty strong {
+  color: var(--text-primary);
+
+  font-size: 0.85rem;
+}
+
+.packhouse-empty span {
+  font-size: 0.75rem;
+}
+
+/* ================================
+   TOTAL SUMMARY
+================================ */
+
+.packhouse-total-summary {
+  margin-top: 1rem;
+}
+
+/* ================================
+   SMALL BUTTON
+================================ */
+
+.packhouse-section .btn-small {
+  padding: 0.45rem 0.75rem;
+
+  font-size: 0.75rem;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+  .packhouse-reject-row {
+    grid-template-columns:
+      minmax(150px, 1.4fr)
+      minmax(90px, 0.7fr)
+      minmax(120px, 0.9fr)
+      minmax(110px, 0.8fr)
+      minmax(100px, 0.7fr)
+      auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .packhouse-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .packhouse-grid > .form-field:first-child {
+    grid-column: span 2;
+  }
+
+  .packhouse-quality-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .packhouse-reject-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .packhouse-reject-row .form-field:first-child {
+    grid-column: span 2;
+  }
+
+  .packhouse-reject-row .remove-defect-btn {
+    justify-self: end;
+  }
+}
+
+@media (max-width: 650px) {
+  .packhouse-entry-card {
+    padding: 1rem;
+  }
+
+  .packhouse-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .packhouse-header .btn {
+    align-self: flex-start;
+  }
+
+  .packhouse-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .packhouse-grid > .form-field:first-child {
+    grid-column: span 1;
+  }
+
+  .packhouse-quality-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .packhouse-reject-section .subsection-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .packhouse-reject-row {
+    grid-template-columns: 1fr;
+  }
+
+  .packhouse-reject-row .form-field:first-child {
+    grid-column: span 1;
+  }
+
+  .packhouse-reject-row .remove-defect-btn {
+    justify-self: start;
+  }
+}

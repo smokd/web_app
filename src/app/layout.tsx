@@ -1,7 +1,13 @@
-import './globals.css';
-import Navbar from '@/components/navbar';
-import type { Metadata, ReactNode } from 'react';
-import { getSession } from '@/lib/auth';
+import "./globals.css";
+import "./styles/Navbar.css";
+import "./styles/Dashboard.css";
+import "./styles/HarvestForm.css";
+import "./styles/FieldRejectSection.css";
+import "./styles/PackHouseSection.css";
+import "./styles/Reports.css";
+import Navbar from "@/components/navbar";
+import type { Metadata, ReactNode } from "react";
+import { getSession } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Polaris QA Web Application",
@@ -17,7 +23,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Navbar role={session?.role}/>
+        <Navbar role={session?.role} />
         <main className="container mt-8">{children}</main>
       </body>
     </html>
