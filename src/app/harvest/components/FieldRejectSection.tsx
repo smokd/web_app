@@ -124,7 +124,7 @@ export default function FieldRejectSection({
 
       <div className="field-reject-header">
         <div>
-          <h3 className="field-reject-title">Field Reject Analysis</h3>
+          <h3 className="field-reject-title">Field Reject Breakdown</h3>
 
           <p>Record field rejects for this variety only.</p>
         </div>

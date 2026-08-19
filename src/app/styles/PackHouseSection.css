@@ -459,3 +459,215 @@
     min-width: auto;
   }
 }
+
+/* =====================================================
+   PACKHOUSE REJECT BREAKDOWN
+===================================================== */
+
+.packhouse-reject-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.packhouse-reject-section .subsection-header {
+  margin-bottom: 1rem;
+}
+
+.packhouse-reject-section .subsection-header h5 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.packhouse-reject-section .subsection-header p {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  opacity: 0.65;
+}
+
+/* =====================================================
+   INPUT MODE
+===================================================== */
+
+.packhouse-reject-section .field-reject-mode {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* =====================================================
+   TOTAL REJECT
+===================================================== */
+
+.packhouse-reject-section .total-field-reject {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  background: var(--neutral-2);
+}
+
+.packhouse-reject-section .total-field-reject label {
+  display: block;
+
+  margin-bottom: 0.5rem;
+
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.packhouse-reject-section .total-field-reject-input {
+  display: flex;
+  align-items: center;
+
+  max-width: 300px;
+}
+
+.packhouse-reject-section .total-field-reject-input .form-input {
+  flex: 1;
+}
+
+.packhouse-reject-section .total-field-reject-input span {
+  padding-left: 0.5rem;
+
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  opacity: 0.65;
+}
+
+.packhouse-reject-section .total-field-reject small {
+  display: block;
+
+  margin-top: 0.5rem;
+
+  font-size: 0.7rem;
+  line-height: 1.4;
+
+  opacity: 0.6;
+}
+
+/* =====================================================
+   REJECT TYPE HEADER
+===================================================== */
+
+.packhouse-reject-breakdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+
+  margin-bottom: 0.75rem;
+}
+
+.packhouse-reject-breakdown-header h6 {
+  margin: 0;
+
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.packhouse-reject-breakdown-header p {
+  margin: 0.25rem 0 0;
+
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
+/* =====================================================
+   EMPTY STATE
+===================================================== */
+
+.packhouse-no-rejects {
+  margin: 0.75rem 0;
+  padding: 0.9rem;
+
+  text-align: center;
+
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+
+  font-size: 0.8rem;
+  opacity: 0.65;
+}
+
+/* =====================================================
+   CALCULATED VALUE
+===================================================== */
+
+.packhouse-reject-section .field-reject-calculated {
+  min-width: 120px;
+}
+
+.packhouse-reject-section .reject-percent {
+  display: flex;
+  align-items: center;
+
+  min-height: 38px;
+  padding: 0.5rem 0.65rem;
+
+  border-radius: 6px;
+
+  background: var(--formula-bg, rgba(10, 197, 178, 0.08));
+
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* =====================================================
+   WARNINGS
+===================================================== */
+
+.packhouse-warning {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+
+  border: 1px solid rgba(198, 40, 40, 0.25);
+  border-radius: 6px;
+
+  background: rgba(198, 40, 40, 0.06);
+
+  color: #c62828;
+
+  font-size: 0.8rem;
+}
+
+.packhouse-warning strong {
+  font-weight: 700;
+}
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 900px) {
+  .packhouse-reject-breakdown-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .packhouse-reject-section .field-reject-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .packhouse-reject-section .field-reject-calculated {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .packhouse-reject-section .field-reject-row {
+    grid-template-columns: 1fr;
+  }
+
+  .packhouse-reject-section .total-field-reject-input {
+    max-width: none;
+  }
+
+  .packhouse-reject-breakdown-header .btn {
+    width: 100%;
+  }
+}

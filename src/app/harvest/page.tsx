@@ -98,24 +98,28 @@ export default async function HarvestPage({
       ===================================== */}
 
       <header className="harvest-header">
-        <div>
-          <h1>Harvest Entry</h1>
+        <section className="form-field">
+          <div className="harvest-grid">
+            <div className="form-field">
+              <h1>Harvest Entry</h1>
 
-          <p>Record blueberry harvest and quality information for the day.</p>
-        </div>
+              {/*<p>Record blueberry harvest and quality information for the day.</p>*/}
+            </div>
 
-        <div className="harvest-date">
-          <span>Harvest Date</span>
+            <div className="form-field">
+              <span>Today`s Date: </span>
 
-          <strong>
-            {new Date(`${date}T00:00:00`).toLocaleDateString("en-GB", {
-              weekday: "short",
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })}
-          </strong>
-        </div>
+              <strong>
+                {new Date(`${date}T00:00:00`).toLocaleDateString("en-GB", {
+                  weekday: "short",
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </strong>
+            </div>
+          </div>
+        </section>
       </header>
 
       {/* =====================================
@@ -123,13 +127,13 @@ export default async function HarvestPage({
       ===================================== */}
 
       <section className="harvest-section">
-        <div className="section-heading">
+        {/*<div className="section-heading">
           <div>
             <h2>New Harvest Record</h2>
 
             <p>Enter today's production and quality information.</p>
           </div>
-        </div>
+        </div> */}
 
         <div className="harvest-form-container">
           <HarvestForm

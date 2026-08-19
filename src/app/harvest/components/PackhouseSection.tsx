@@ -2,7 +2,6 @@
 
 type RejectRow = {
   rejectType: string;
-  inputMode: "KG" | "PERCENT";
   inputValue: number;
 };
 
@@ -11,6 +10,7 @@ type PackhouseEntry = {
   processedKg: number;
   rejectKg: number;
   rejects: RejectRow[];
+  rejectInputMode: "KG" | "PERCENT";
 };
 
 type Variety = {
@@ -47,12 +47,15 @@ export default function PackhouseSection({
         processedKg: 0,
         rejectKg: 0,
         rejects: [],
+        rejectInputMode: "KG",
       },
     ]);
   };
 
   const updateEntry = (index: number, patch: Partial<PackhouseEntry>) => {
     const next = [...entries];
+
+    if (!next[index]) return;
 
     next[index] = {
       ...next[index],
@@ -66,6 +69,22 @@ export default function PackhouseSection({
     onChange(entries.filter((_, i) => i !== index));
   };
 
+  /*
+   * Reject input mode is selected once per
+   * packhouse variety.
+   *
+   * All reject rows under this variety
+   * use the selected mode.
+   */
+  const handleRejectInputModeChange = (
+    entryIndex: number,
+    mode: "KG" | "PERCENT",
+  ) => {
+    updateEntry(entryIndex, {
+      rejectInputMode: mode,
+    });
+  };
+
   const addReject = (entryIndex: number) => {
     const entry = entries[entryIndex];
 
@@ -76,7 +95,6 @@ export default function PackhouseSection({
         ...entry.rejects,
         {
           rejectType: "",
-          inputMode: "KG",
           inputValue: 0,
         },
       ],
@@ -94,12 +112,16 @@ export default function PackhouseSection({
 
     const rejects = [...entry.rejects];
 
+    if (!rejects[rejectIndex]) return;
+
     rejects[rejectIndex] = {
       ...rejects[rejectIndex],
       ...patch,
     };
 
-    updateEntry(entryIndex, { rejects });
+    updateEntry(entryIndex, {
+      rejects,
+    });
   };
 
   const removeReject = (entryIndex: number, rejectIndex: number) => {
@@ -111,6 +133,10 @@ export default function PackhouseSection({
       rejects: entry.rejects.filter((_, i) => i !== rejectIndex),
     });
   };
+
+  /*
+   * OVERALL TOTALS
+   */
 
   const totalProcessedKg = entries.reduce(
     (sum, entry) => sum + (Number(entry.processedKg) || 0),
@@ -129,31 +155,41 @@ export default function PackhouseSection({
 
   return (
     <div className="packhouse-section">
-      {/* HEADER */}
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
       <div className="packhouse-header">
-        <div>
+        {/*<div>
           <h3 className="packhouse-title">Packhouse Processing</h3>
 
           <p className="packhouse-subtitle">
             Record processed quantity and packhouse quality rejects for each
             variety.
           </p>
-        </div>
+        </div>*/}
 
         <button type="button" onClick={addEntry} className="btn btn-secondary">
           + Add Variety
         </button>
       </div>
 
-      {/* EMPTY STATE */}
+      {/* =====================================================
+          EMPTY STATE
+      ===================================================== */}
+
       {entries.length === 0 && (
         <div className="packhouse-empty">
           <strong>No packhouse processing recorded.</strong>
+
           <span>Add a variety to record processed quantity and rejects.</span>
         </div>
       )}
 
-      {/* ENTRIES */}
+      {/* =====================================================
+          ENTRIES
+      ===================================================== */}
+
       <div className="packhouse-entry-list">
         {entries.map((entry, entryIndex) => {
           const processedKg = Number(entry.processedKg) || 0;
@@ -165,32 +201,64 @@ export default function PackhouseSection({
           const rejectPct =
             processedKg > 0 ? (rejectKg / processedKg) * 100 : 0;
 
-          const rejectKgFromBreakdown = entry.rejects.reduce((sum, reject) => {
-            const value = Number(reject.inputValue) || 0;
+          /*
+           * =================================================
+           * KG MODE
+           *
+           * Each row represents an actual KG quantity.
+           * Total breakdown = sum of row KG values.
+           * =================================================
+           */
 
-            if (reject.inputMode === "KG") {
-              return sum + value;
-            }
+          const rejectKgFromBreakdown =
+            entry.rejectInputMode === "KG"
+              ? entry.rejects.reduce(
+                  (sum, reject) => sum + (Number(reject.inputValue) || 0),
+                  0,
+                )
+              : 0;
 
-            return sum;
-          }, 0);
+          /*
+           * =================================================
+           * PERCENT MODE
+           *
+           * Each row represents a percentage of the
+           * TOTAL reject quantity.
+           *
+           * Example:
+           *
+           * Total Reject = 100 kg
+           * Underripe = 20%
+           * Birds = 10%
+           *
+           * Underripe = 20 kg
+           * Birds = 10 kg
+           * =================================================
+           */
 
-          const percentRows = entry.rejects.filter(
-            (reject) => reject.inputMode === "PERCENT",
-          );
+          const percentageTotal =
+            entry.rejectInputMode === "PERCENT"
+              ? entry.rejects.reduce(
+                  (sum, reject) => sum + (Number(reject.inputValue) || 0),
+                  0,
+                )
+              : 0;
 
-          const percentageTotal = percentRows.reduce(
-            (sum, reject) => sum + (Number(reject.inputValue) || 0),
-            0,
-          );
+          const breakdownExceedsTotal =
+            entry.rejectInputMode === "KG" &&
+            rejectKgFromBreakdown > rejectKg + 0.01;
 
-          const remainingKg = Math.max(rejectKg - rejectKgFromBreakdown, 0);
-
-          const breakdownExceedsTotal = rejectKgFromBreakdown > rejectKg + 0.01;
+          const percentageBreakdownInvalid =
+            entry.rejectInputMode === "PERCENT" &&
+            entry.rejects.length > 0 &&
+            Math.abs(percentageTotal - 100) > 0.1;
 
           return (
             <div key={entryIndex} className="packhouse-entry-card">
-              {/* ENTRY HEADER */}
+              {/* =================================================
+                  ENTRY HEADER
+              ================================================= */}
+
               <div className="packhouse-entry-header">
                 <div>
                   <span className="packhouse-entry-number">
@@ -209,9 +277,13 @@ export default function PackhouseSection({
                 </button>
               </div>
 
-              {/* BASIC DATA */}
+              {/* =================================================
+                  BASIC DATA
+              ================================================= */}
+
               <div className="packhouse-grid">
                 {/* VARIETY */}
+
                 <div className="form-field">
                   <label htmlFor={`packhouse-variety-${entryIndex}`}>
                     Variety
@@ -239,6 +311,7 @@ export default function PackhouseSection({
                 </div>
 
                 {/* PROCESSED */}
+
                 <div className="form-field">
                   <label htmlFor={`processed-${entryIndex}`}>
                     Processed Quantity
@@ -268,6 +341,7 @@ export default function PackhouseSection({
                 </div>
 
                 {/* TOTAL REJECT */}
+
                 <div className="form-field">
                   <label htmlFor={`packhouse-reject-${entryIndex}`}>
                     Total Reject
@@ -298,38 +372,140 @@ export default function PackhouseSection({
                 </div>
               </div>
 
-              {/* QUALITY SUMMARY */}
-              <div className="packhouse-quality-summary">
+              {/* =================================================
+                  QUALITY SUMMARY
+              ================================================= */}
+
+              {/* <div className="packhouse-quality-summary">
                 <div>
                   <span>Processed</span>
+
                   <strong>{processedKg.toFixed(2)} kg</strong>
                 </div>
 
                 <div>
                   <span>Rejects</span>
+
                   <strong>{rejectKg.toFixed(2)} kg</strong>
                 </div>
 
                 <div>
                   <span>Reject Rate</span>
+
                   <strong>{rejectPct.toFixed(2)}%</strong>
                 </div>
 
                 <div>
                   <span>Good Product</span>
+
                   <strong>{goodKg.toFixed(2)} kg</strong>
                 </div>
-              </div>
+              </div>  */}
 
-              {/* REJECT BREAKDOWN */}
+              {/* =====================================================
+    PACKHOUSE REJECT BREAKDOWN
+===================================================== */}
+
               <div className="packhouse-reject-section">
+                {/* =================================================
+      HEADER
+  ================================================= */}
+
                 <div className="subsection-header">
                   <div>
-                    <h5>Reject Breakdown</h5>
+                    <h5>Packhouse Reject Breakdown</h5>
+
+                    <p>Record packhouse rejects for this variety.</p>
+                  </div>
+                </div>
+
+                {/* =================================================
+      INPUT MODE
+  ================================================= */}
+
+                <div className="field-reject-mode">
+                  <label>Reject Input Method</label>
+
+                  <div className="field-reject-mode-options">
+                    <button
+                      type="button"
+                      className={`field-reject-mode-button ${
+                        entry.rejectInputMode === "KG" ? "active" : ""
+                      }`}
+                      onClick={() =>
+                        handleRejectInputModeChange(entryIndex, "KG")
+                      }
+                    >
+                      Kilograms (KG)
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`field-reject-mode-button ${
+                        entry.rejectInputMode === "PERCENT" ? "active" : ""
+                      }`}
+                      onClick={() =>
+                        handleRejectInputModeChange(entryIndex, "PERCENT")
+                      }
+                    >
+                      Percentage (%)
+                    </button>
+                  </div>
+                </div>
+
+                {/* =================================================
+      TOTAL REJECT
+      ONLY IN PERCENT MODE
+  ================================================= */}
+
+                {entry.rejectInputMode === "PERCENT" && (
+                  <div className="total-field-reject">
+                    <label htmlFor={`total-packhouse-reject-${entryIndex}`}>
+                      Total Packhouse Rejects for This Variety
+                    </label>
+
+                    <div className="total-field-reject-input">
+                      <input
+                        id={`total-packhouse-reject-${entryIndex}`}
+                        type="number"
+                        min="0"
+                        max={processedKg || undefined}
+                        step="0.01"
+                        value={entry.rejectKg === 0 ? "" : entry.rejectKg}
+                        onChange={(event) =>
+                          updateEntry(entryIndex, {
+                            rejectKg:
+                              event.target.value === ""
+                                ? 0
+                                : Number(event.target.value),
+                          })
+                        }
+                        className="form-input"
+                        placeholder="0.00"
+                      />
+
+                      <span>kg</span>
+                    </div>
+
+                    <small>
+                      Enter the total rejected quantity for this variety. The
+                      percentages below divide this total.
+                    </small>
+                  </div>
+                )}
+
+                {/* =================================================
+      ADD REJECT TYPE
+  ================================================= */}
+
+                <div className="packhouse-reject-breakdown-header">
+                  <div>
+                    <h6>Reject Types</h6>
 
                     <p>
-                      Break down the total rejects by defect type using KG or
-                      percentage.
+                      {entry.rejectInputMode === "PERCENT"
+                        ? "Break down the total rejects by percentage."
+                        : "Enter the rejected quantity for each defect in kilograms."}
                     </p>
                   </div>
 
@@ -342,176 +518,209 @@ export default function PackhouseSection({
                   </button>
                 </div>
 
+                {/* =================================================
+      EMPTY STATE
+  ================================================= */}
+
                 {entry.rejects.length === 0 && (
                   <p className="packhouse-no-rejects">
                     No reject types recorded.
                   </p>
                 )}
 
-                <div className="packhouse-reject-list">
-                  {entry.rejects.map((reject, rejectIndex) => {
-                    const value = Number(reject.inputValue) || 0;
+                {/* =================================================
+      REJECT ROWS
+  ================================================= */}
 
-                    const calculatedKg =
-                      reject.inputMode === "KG"
-                        ? value
-                        : (rejectKg * value) / 100;
+                {entry.rejects.length > 0 && (
+                  <div className="field-reject-rows">
+                    {entry.rejects.map((reject, rejectIndex) => {
+                      const value = Number(reject.inputValue) || 0;
 
-                    const calculatedPct =
-                      rejectKg > 0 ? (calculatedKg / rejectKg) * 100 : 0;
+                      /*
+                       * KG:
+                       * value itself is KG.
+                       *
+                       * PERCENT:
+                       * value is percentage of total reject KG.
+                       */
 
-                    return (
-                      <div key={rejectIndex} className="packhouse-reject-row">
-                        {/* TYPE */}
-                        <div className="form-field">
-                          <label
-                            htmlFor={`packhouse-reject-type-${entryIndex}-${rejectIndex}`}
-                          >
-                            Reject Type
-                          </label>
+                      const calculatedKg =
+                        entry.rejectInputMode === "PERCENT"
+                          ? (rejectKg * value) / 100
+                          : value;
 
-                          <select
-                            id={`packhouse-reject-type-${entryIndex}-${rejectIndex}`}
-                            value={reject.rejectType}
-                            onChange={(event) =>
-                              updateReject(entryIndex, rejectIndex, {
-                                rejectType: event.target.value,
-                              })
-                            }
-                            className="form-input"
-                          >
-                            <option value="">Select defect</option>
+                      /*
+                       * Percentage contribution
+                       * to total packhouse rejects.
+                       */
 
-                            {DEFECT_TYPES.map((type) => (
-                              <option key={type} value={type}>
-                                {type}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                      const calculatedPct =
+                        rejectKg > 0 ? (calculatedKg / rejectKg) * 100 : 0;
 
-                        {/* MODE */}
-                        <div className="form-field packhouse-mode-field">
-                          <label
-                            htmlFor={`packhouse-reject-mode-${entryIndex}-${rejectIndex}`}
-                          >
-                            Input
-                          </label>
+                      return (
+                        <div key={rejectIndex} className="field-reject-row">
+                          {/* =====================================
+                  DEFECT TYPE
+              ===================================== */}
 
-                          <select
-                            id={`packhouse-reject-mode-${entryIndex}-${rejectIndex}`}
-                            value={reject.inputMode}
-                            onChange={(event) =>
-                              updateReject(entryIndex, rejectIndex, {
-                                inputMode: event.target.value as
-                                  | "KG"
-                                  | "PERCENT",
-                                inputValue: 0,
-                              })
-                            }
-                            className="form-input"
-                          >
-                            <option value="KG">KG</option>
+                          <div className="field-reject-type">
+                            <label
+                              htmlFor={`packhouse-reject-type-${entryIndex}-${rejectIndex}`}
+                            >
+                              Defect Type
+                            </label>
 
-                            <option value="PERCENT">%</option>
-                          </select>
-                        </div>
-
-                        {/* VALUE */}
-                        <div className="form-field packhouse-value-field">
-                          <label
-                            htmlFor={`packhouse-reject-value-${entryIndex}-${rejectIndex}`}
-                          >
-                            {reject.inputMode === "PERCENT"
-                              ? "Reject %"
-                              : "Rejected Kg"}
-                          </label>
-
-                          <div className="input-with-unit">
-                            <input
-                              id={`packhouse-reject-value-${entryIndex}-${rejectIndex}`}
-                              type="number"
-                              min="0"
-                              max={
-                                reject.inputMode === "PERCENT"
-                                  ? 100
-                                  : rejectKg || undefined
-                              }
-                              step="0.01"
-                              value={
-                                reject.inputValue === 0 ? "" : reject.inputValue
-                              }
+                            <select
+                              id={`packhouse-reject-type-${entryIndex}-${rejectIndex}`}
+                              value={reject.rejectType}
                               onChange={(event) =>
                                 updateReject(entryIndex, rejectIndex, {
-                                  inputValue:
-                                    event.target.value === ""
-                                      ? 0
-                                      : Number(event.target.value),
+                                  rejectType: event.target.value,
                                 })
                               }
-                              className="form-input"
-                              placeholder="0.00"
-                            />
+                            >
+                              <option value="">— Select —</option>
 
-                            <span>
-                              {reject.inputMode === "PERCENT" ? "%" : "kg"}
-                            </span>
+                              {DEFECT_TYPES.map((type) => (
+                                <option key={type} value={type}>
+                                  {type}
+                                </option>
+                              ))}
+                            </select>
                           </div>
-                        </div>
 
-                        {/* CALCULATED KG */}
-                        <div className="form-field">
-                          <label>Calculated Kg</label>
+                          {/* =====================================
+                  INPUT VALUE
+              ===================================== */}
 
-                          <div className="calculated-field">
-                            {calculatedKg.toFixed(2)} kg
+                          <div className="field-reject-kg">
+                            <label
+                              htmlFor={`packhouse-reject-value-${entryIndex}-${rejectIndex}`}
+                            >
+                              {entry.rejectInputMode === "PERCENT"
+                                ? "Reject %"
+                                : "Rejected Kg"}
+                            </label>
+
+                            <div className="input-with-unit">
+                              <input
+                                id={`packhouse-reject-value-${entryIndex}-${rejectIndex}`}
+                                type="number"
+                                min="0"
+                                max={
+                                  entry.rejectInputMode === "PERCENT"
+                                    ? 100
+                                    : rejectKg || undefined
+                                }
+                                step="0.01"
+                                value={
+                                  reject.inputValue === 0
+                                    ? ""
+                                    : reject.inputValue
+                                }
+                                onChange={(event) =>
+                                  updateReject(entryIndex, rejectIndex, {
+                                    inputValue:
+                                      event.target.value === ""
+                                        ? 0
+                                        : Number(event.target.value),
+                                  })
+                                }
+                                className="form-input"
+                                placeholder="0.00"
+                              />
+
+                              <span>
+                                {entry.rejectInputMode === "PERCENT"
+                                  ? "%"
+                                  : "kg"}
+                              </span>
+                            </div>
                           </div>
+
+                          {/* =====================================
+                  CALCULATED KG
+                  ONLY IN PERCENT MODE
+              ===================================== */}
+
+                          {entry.rejectInputMode === "PERCENT" && (
+                            <div className="field-reject-calculated">
+                              <label>Calculated Kg</label>
+
+                              <div className="reject-percent">
+                                {calculatedKg.toFixed(2)} kg
+                              </div>
+                            </div>
+                          )}
+
+                          {/* =====================================
+                  REJECT %
+                  KG MODE ONLY
+              ===================================== */}
+
+                          {entry.rejectInputMode === "KG" && (
+                            <div className="field-reject-calculated">
+                              <label>Reject %</label>
+
+                              <div className="reject-percent">
+                                {calculatedPct.toFixed(2)}%
+                              </div>
+                            </div>
+                          )}
+
+                          {/* =====================================
+                  DELETE
+              ===================================== */}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeReject(entryIndex, rejectIndex)
+                            }
+                            className="remove-defect-btn"
+                            aria-label={`Remove ${
+                              reject.rejectType || "reject"
+                            }`}
+                          >
+                            ✕
+                          </button>
                         </div>
+                      );
+                    })}
+                  </div>
+                )}
 
-                        {/* REJECT % */}
-                        <div className="form-field">
-                          <label>Reject %</label>
+                {/* =================================================
+      KG WARNING
+  ================================================= */}
 
-                          <div className="calculated-field">
-                            {calculatedPct.toFixed(2)}%
-                          </div>
-                        </div>
-
-                        {/* DELETE */}
-                        <button
-                          type="button"
-                          onClick={() => removeReject(entryIndex, rejectIndex)}
-                          className="remove-defect-btn"
-                          aria-label={`Remove ${reject.rejectType || "reject"}`}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* WARNINGS */}
                 {breakdownExceedsTotal && (
                   <div className="packhouse-warning">
                     ⚠️ Reject breakdown exceeds the total reject quantity.
                   </div>
                 )}
 
-                {percentRows.length > 0 &&
-                  Math.abs(percentageTotal - 100) > 0.1 && (
-                    <div className="packhouse-warning">
-                      ⚠️ Percentage reject breakdown must total 100%.
-                      <strong> Current: {percentageTotal.toFixed(2)}%</strong>
-                    </div>
-                  )}
+                {/* =================================================
+      PERCENT WARNING
+  ================================================= */}
+
+                {percentageBreakdownInvalid && (
+                  <div className="packhouse-warning">
+                    ⚠️ Percentage reject breakdown must total 100%.
+                    <strong> Current: {percentageTotal.toFixed(2)}%</strong>
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* OVERALL SUMMARY */}
+      {/* =====================================================
+          OVERALL SUMMARY
+      ===================================================== */}
+
       {entries.length > 0 && (
         <div className="quality-summary packhouse-total-summary">
           <div>

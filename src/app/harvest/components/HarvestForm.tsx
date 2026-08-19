@@ -299,12 +299,12 @@ export default function HarvestForm({
       ===================================== */}
 
       <section className="form-section">
-        <div className="form-section-header">
+        {/*<div className="form-section-header">
           <div>
             <h3>Harvest Details</h3>
             <p>Enter the basic information for today's harvest.</p>
           </div>
-        </div>
+        </div> */}
 
         <div className="harvest-grid">
           {/* DATE */}
@@ -345,7 +345,7 @@ export default function HarvestForm({
             <h3>Harvest by Variety</h3>
 
             <p>
-              Add each variety harvested today and record its field quality
+              Add each variety harvested today and record its field rejects
               separately.
             </p>
           </div>
@@ -470,7 +470,7 @@ export default function HarvestForm({
                   </div>
                 </div>
 
-                {/* QUALITY SUMMARY */}
+                {/* QUALITY SUMMARY
                 <div className="variety-quality-summary">
                   <div>
                     <span>Harvested</span>
@@ -490,17 +490,17 @@ export default function HarvestForm({
                     <span>Good Harvest</span>
                     <strong>{goodKg.toFixed(2)} kg</strong>
                   </div>
-                </div>
+                </div>  */}
 
                 {/* FIELD REJECT BREAKDOWN */}
                 <div className="variety-reject-section">
                   <div className="subsection-header">
-                    <div>
+                    {/*<div>
                       <h5>Field Reject Breakdown</h5>
                       <p>Record the reject breakdown for this variety.</p>
                     </div>
 
-                    <strong>{fieldRejectKg.toFixed(2)} kg rejected</strong>
+                    <strong>{fieldRejectKg.toFixed(2)} kg rejected</strong> */}
                   </div>
 
                   <FieldRejectSection
@@ -524,6 +524,29 @@ export default function HarvestForm({
                       })
                     }
                   />
+                </div>
+
+                {/* QUALITY SUMMARY */}
+                <div className="variety-quality-summary">
+                  <div>
+                    <span>Harvested</span>
+                    <strong>{harvestedKg.toFixed(2)} kg</strong>
+                  </div>
+
+                  <div>
+                    <span>Field Rejects</span>
+                    <strong>{totalFieldRejectKg.toFixed(2)} kg</strong>
+                  </div>
+
+                  <div>
+                    <span>Reject Rate</span>
+                    <strong>{rejectPct.toFixed(2)}%</strong>
+                  </div>
+
+                  <div>
+                    <span>Good Harvest</span>
+                    <strong>{goodKg.toFixed(2)} kg</strong>
+                  </div>
                 </div>
               </div>
             );
