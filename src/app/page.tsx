@@ -47,7 +47,7 @@ export default async function Home() {
     },
   });
 
-  const OUTLIER_HARVEST_KG = 30_000; //to remove bulk harvest data, outlier
+  const OUTLIER_HARVEST_KG = 40000;
 
   const filteredHarvests = harvests.filter(
     (h) => Number(h.harvestedKg || 0) < OUTLIER_HARVEST_KG,
@@ -184,12 +184,12 @@ export default async function Home() {
    * ==========================================
    */
 
-  const totalHarvestKg = filteredHarvests.reduce(
+  const totalHarvestKg = harvests.reduce(
     (sum, h) => sum + Number(h.harvestedKg || 0),
     0,
   );
 
-  const totalFieldRejectKg = filteredHarvests.reduce(
+  const totalFieldRejectKg = harvests.reduce(
     (sum, h) => sum + Number(h.fieldRejectsKg || 0),
     0,
   );
