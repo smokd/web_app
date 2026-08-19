@@ -13,6 +13,13 @@ type FieldRejectInput = {
   inputValue: number;
 };
 
+type HarvestEntryInput = {
+  variety: string;
+  harvestedKg: number;
+  blocks?: string | null;
+  fieldRejects: FieldRejectInput[];
+};
+
 type PackhouseRejectInput = {
   rejectType: string;
   inputMode: RejectInputMode;
@@ -171,6 +178,93 @@ function parseFieldRejects(
   });
 }
 
+function parseHarvestEntries(
+  value: FormDataEntryValue | null,
+): HarvestEntryInput[] {
+  if (value === null || String(value).trim() === "") {
+    throw new Error("At least one harvest variety is required");
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(String(value));
+  } catch {
+    throw new Error("Invalid harvest entries data");
+  }
+
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error("At least one harvest variety is required");
+  }
+
+  return parsed.map((item, index) => {
+    if (!item || typeof item !== "object") {
+      throw new Error(`Invalid harvest entry at row ${index + 1}`);
+    }
+
+    const row = item as Record<string, unknown>;
+
+    const variety = String(row.variety ?? "").trim();
+
+    const harvestedKg = Number(row.harvestedKg);
+
+    const blocks = String(row.blocks ?? "").trim() || null;
+
+    if (!variety) {
+      throw new Error(`Harvest variety is required at row ${index + 1}`);
+    }
+
+    if (!Number.isFinite(harvestedKg) || harvestedKg <= 0) {
+      throw new Error(`Harvested kg is invalid for ${variety}`);
+    }
+
+    const fieldRejects = Array.isArray(row.fieldRejects)
+      ? row.fieldRejects.map((reject, rejectIndex) => {
+          if (!reject || typeof reject !== "object") {
+            throw new Error(
+              `Invalid field reject at row ${rejectIndex + 1} for ${variety}`,
+            );
+          }
+
+          const r = reject as Record<string, unknown>;
+
+          const rejectType = String(r.rejectType ?? "").trim();
+
+          const inputMode = parseRejectInputMode(r.inputMode);
+
+          const inputValue = Number(r.inputValue);
+
+          if (!rejectType) {
+            throw new Error(`Field reject type is required for ${variety}`);
+          }
+
+          if (!Number.isFinite(inputValue) || inputValue < 0) {
+            throw new Error(`Invalid field reject value for ${variety}`);
+          }
+
+          if (inputMode === "PERCENT" && inputValue > 100) {
+            throw new Error(
+              `Field reject percentage cannot exceed 100% for ${variety}`,
+            );
+          }
+
+          return {
+            rejectType,
+            inputMode,
+            inputValue,
+          };
+        })
+      : [];
+
+    return {
+      variety,
+      harvestedKg,
+      blocks,
+      fieldRejects,
+    };
+  });
+}
+
 function parsePackhouse(
   value: FormDataEntryValue | null,
 ): PackhouseInput | null {
@@ -283,14 +377,6 @@ export async function createHarvestRecord(formData: FormData) {
   const session = await requireAuth();
 
   const date = String(formData.get("date") || "").trim();
-  const variety = String(formData.get("variety") || "").trim();
-
-  const harvestedKg = parseFiniteNumber(
-    formData.get("harvestedKg"),
-    "Harvested kg",
-  );
-
-  const blocks = String(formData.get("blocks") || "").trim() || null;
 
   const supervisor = String(formData.get("supervisor") || "").trim() || null;
 
@@ -319,6 +405,12 @@ export async function createHarvestRecord(formData: FormData) {
   const weatherSource =
     String(formData.get("weatherSource") || "").trim() || null;
 
+  if (!date) {
+    throw new Error("Harvest date is required");
+  }
+
+  const harvestEntries = parseHarvestEntries(formData.get("harvestEntries"));
+
   if (!date || !variety) {
     throw new Error("Date and variety are required");
   }
@@ -327,30 +419,7 @@ export async function createHarvestRecord(formData: FormData) {
     throw new Error("Harvested kg cannot be negative");
   }
 
-  const fieldRejects = parseFieldRejects(formData.get("fieldRejects"));
-
   const packhouse = parsePackhouse(formData.get("packhouse"));
-
-  const totalFieldRejectKg = parseFiniteNumber(
-    formData.get("fieldRejectsKg"),
-    "Field rejects kg",
-    0,
-  );
-
-  const totalFieldRejectPct = calcRejectPct(harvestedKg, totalFieldRejectKg);
-
-  if (totalFieldRejectKg > harvestedKg) {
-    throw new Error("Field rejects cannot exceed harvested kg");
-  }
-  if (totalFieldRejectPct > 100) {
-    throw new Error("Total field reject percentage cannot exceed 100%");
-  }
-
-  const resolvedFieldRejects = resolveRejectBreakdown(
-    fieldRejects,
-    totalFieldRejectKg,
-    "Field reject",
-  );
 
   /* if (packhouse) {
 
@@ -447,177 +516,139 @@ export async function createHarvestRecord(formData: FormData) {
 
   const fieldRejectPct = calcRejectPct(harvestedKg, totalFieldRejectKg);
 
-  let createdHarvestId: number;
+  const createdHarvestIds: number[] = [];
 
-  try {
-    await prisma.$transaction(async (tx) => {
-      const harvest = await tx.harvest.create({
-        data: {
-          date,
-          variety,
-          harvestedKg,
-          fieldRejectsKg: totalFieldRejectKg,
-          fieldRejectPct,
-          blocks,
-          supervisor,
-          notes,
-          weather,
-          weatherTemp,
-          weatherLat,
-          weatherLon,
-          weatherSource,
-          userId: session.userId,
-        },
-      });
-
-      createdHarvestId = harvest.id;
-
-      if (fieldRejects.length > 0) {
-        await tx.fieldReject.createMany({
-          data: resolvedFieldRejects.map((reject) => ({
-            date,
-            variety,
-            rejectType: reject.rejectType,
-            inputMode: reject.inputMode,
-            inputValue: reject.inputValue,
-            rejectKg: reject.rejectKg,
-            rejectPct: reject.rejectPct,
-            harvestId: harvest.id,
-          })),
-        });
+  for (const entry of harvestEntries) {
+    const totalFieldRejectKg = entry.fieldRejects.reduce((sum, reject) => {
+      if (reject.inputMode === "KG") {
+        return sum + reject.inputValue;
       }
 
-      /* if (packhouse && packhouse.processedKg > 0) {
-        const load =
-          await tx.packhouseLoad.create({
+      return sum + (entry.harvestedKg * reject.inputValue) / 100;
+    }, 0);
+
+    if (totalFieldRejectKg > entry.harvestedKg + 0.01) {
+      throw new Error(
+        `Field rejects cannot exceed harvested kg for ${entry.variety}`,
+      );
+    }
+
+    const fieldRejectPct = calcRejectPct(entry.harvestedKg, totalFieldRejectKg);
+
+    const resolvedFieldRejects = resolveRejectBreakdown(
+      entry.fieldRejects,
+      totalFieldRejectKg,
+      `Field reject (${entry.variety})`,
+    );
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const harvest = await tx.harvest.create({
+          data: {
+            date,
+            variety: entry.variety,
+            harvestedKg: entry.harvestedKg,
+            fieldRejectsKg: totalFieldRejectKg,
+            fieldRejectPct,
+            blocks: entry.blocks ?? null,
+            supervisor,
+            notes,
+            weather,
+            weatherTemp,
+            weatherLat,
+            weatherLon,
+            weatherSource,
+            userId: session.userId,
+          },
+        });
+
+        createdHarvestIds.push(harvest.id);
+
+        if (resolvedFieldRejects.length > 0) {
+          await tx.fieldReject.createMany({
+            data: resolvedFieldRejects.map((reject) => ({
+              date,
+              variety: entry.variety,
+              rejectType: reject.rejectType,
+              inputMode: reject.inputMode,
+              inputValue: reject.inputValue,
+              rejectKg: reject.rejectKg,
+              rejectPct: reject.rejectPct,
+              harvestId: harvest.id,
+            })),
+          });
+        }
+
+        for (const entry of resolvedPackhouseEntries) {
+          if (entry.processedKg <= 0) {
+            continue;
+          }
+
+          const load = await tx.packhouseLoad.create({
             data: {
               date,
-              variety,
-              processedKg: packhouse.processedKg,
-              notes: packhouse.notes || null,
+              variety: entry.variety,
+              processedKg: entry.processedKg,
+              notes: entry.notes ?? null,
               harvestId: harvest.id,
             },
           });
 
-        if (packhouse.rejects.length > 0) {
-          await tx.packhouseReject.createMany({
-            data: resolvedPackhouseRejects.map((reject) => ({
+          if (entry.resolvedRejects.length > 0) {
+            await tx.packhouseReject.createMany({
+              data: entry.resolvedRejects.map((reject) => ({
                 date,
-                variety,
+                variety: entry.variety,
                 rejectType: reject.rejectType,
                 inputMode: reject.inputMode,
                 inputValue: reject.inputValue,
                 rejectKg: reject.rejectKg,
                 rejectPct: reject.rejectPct,
+                notes: entry.notes ?? null,
                 packhouseLoadId: load.id,
               })),
-          });
+            });
+          }
         }
 
-      } */
-
-      for (const entry of resolvedPackhouseEntries) {
-        if (entry.processedKg <= 0) {
-          continue;
-        }
-
-        const load = await tx.packhouseLoad.create({
-          data: {
+        await createAuditLog({
+          userId: session.userId,
+          action: "CREATE",
+          entity: "HARVEST",
+          entityId: createdHarvestIds[0]!,
+          description: `Created ${createdHarvestIds.length} harvest record${
+            createdHarvestIds.length === 1 ? "" : "s"
+          }`,
+          changes: {
             date,
-            variety: entry.variety,
-            processedKg: entry.processedKg,
-            notes: entry.notes ?? null,
-            harvestId: harvest.id,
+            varieties: harvestEntries.map((entry) => ({
+              variety: entry.variety,
+              harvestedKg: entry.harvestedKg,
+              blocks: entry.blocks,
+              fieldRejects: entry.fieldRejects,
+            })),
+            supervisor,
           },
         });
-
-        if (entry.resolvedRejects.length > 0) {
-          await tx.packhouseReject.createMany({
-            data: entry.resolvedRejects.map((reject) => ({
-              date,
-              variety: entry.variety,
-              rejectType: reject.rejectType,
-              inputMode: reject.inputMode,
-              inputValue: reject.inputValue,
-              rejectKg: reject.rejectKg,
-              rejectPct: reject.rejectPct,
-              notes: entry.notes ?? null,
-              packhouseLoadId: load.id,
-            })),
-          });
-        }
-      }
-
-      for (const entry of packhouseEntries) {
-        if (entry.processedKg <= 0) {
-          continue;
-        }
-
-        const resolvedRejects = resolveRejectBreakdown(
-          entry.rejects,
-          entry.rejectKg,
-          `Packhouse reject (${entry.variety})`,
-        );
-
-        const load = await tx.packhouseLoad.create({
-          data: {
-            date,
-            variety: entry.variety,
-            processedKg: entry.processedKg,
-            notes: entry.notes ?? null,
-            harvestId: null,
-          },
-        });
-
-        if (resolvedRejects.length > 0) {
-          await tx.packhouseReject.createMany({
-            data: resolvedRejects.map((reject) => ({
-              date,
-              variety: entry.variety,
-              rejectType: reject.rejectType,
-              inputMode: reject.inputMode,
-              inputValue: reject.inputValue,
-              rejectKg: reject.rejectKg,
-              rejectPct: reject.rejectPct,
-              packhouseLoadId: load.id,
-            })),
-          });
-        }
-      }
-
-      await createAuditLog({
-        userId: session.userId,
-        action: "CREATE",
-        entity: "HARVEST",
-        entityId: createdHarvestId!,
-        description: `Created harvest record #${createdHarvestId}`,
-        changes: {
-          date,
-          variety,
-          harvestedKg,
-          fieldRejectsKg: totalFieldRejectKg,
-          fieldRejectPct,
-          blocks,
-          supervisor,
-        },
       });
-    });
-  } catch (error) {
-    console.error("Failed to create harvest record:", error);
+    } catch (error) {
+      console.error("Failed to create harvest record:", error);
 
-    throw new Error(
-      error instanceof Error
-        ? error.message
-        : "Failed to save harvest record. No changes were made.",
-    );
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : "Failed to save harvest record. No changes were made.",
+      );
+    }
+
+    revalidatePath("/harvest");
+    revalidatePath("/dashboard");
+
+    return {
+      success: true,
+      harvestIds: createdHarvestIds,
+    };
   }
-
-  revalidatePath("/harvest");
-  revalidatePath("/dashboard");
-
-  return {
-    success: true,
-  };
 }
 
 export async function updateHarvestRecord(formData: FormData) {

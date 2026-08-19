@@ -37,7 +37,7 @@
   --transition-speed: 0.3s ease;
 
   /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-size-base: 1rem;
   --font-size-h2: 1.5rem;
   --font-size-h3: 1.25rem;
@@ -299,7 +299,6 @@ table {
 ========================================= */
 
 @media (max-width: 1000px) {
-
   .container {
     padding: 1.5rem;
   }
@@ -322,7 +321,6 @@ table {
 ========================================= */
 
 @media (max-width: 600px) {
-
   .container {
     padding: 1rem;
   }
@@ -400,7 +398,6 @@ table {
 ========================================= */
 
 @media (max-width: 380px) {
-
   .dashboard {
     padding: 8px;
   }
@@ -528,7 +525,6 @@ table {
 ========================================= */
 
 @media (max-width: 700px) {
-
   .navbar-inner {
     padding: 0.65rem 1rem;
   }
@@ -754,7 +750,6 @@ table {
 ========================================= */
 
 @media (max-width: 600px) {
-
   .field-reject-header {
     align-items: stretch;
     flex-direction: column;
@@ -839,8 +834,7 @@ table {
 
 .dashboard-kpis {
   display: grid;
-  grid-template-columns:
-    repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 
   gap: 1rem;
   margin-bottom: 1.5rem;
@@ -856,14 +850,12 @@ table {
 
   display: flex;
   flex-direction: column;
-
 }
 
 .dashboard-kpi span {
   color: var(--text-secondary);
   font-size: 1.5rem;
   font-weight: bold;
-
 }
 
 .dashboard-kpi strong {
@@ -922,8 +914,7 @@ table {
 .dashboard-grid {
   display: grid;
 
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 
   gap: 1.5rem;
 
@@ -949,14 +940,12 @@ table {
 ========================================= */
 
 @media (max-width: 1000px) {
-
   .dashboard {
     padding: 1.25rem;
   }
 
   .dashboard-kpis {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .dashboard-grid {
@@ -969,7 +958,6 @@ table {
 ========================================= */
 
 @media (max-width: 600px) {
-
   .dashboard {
     padding: 0.75rem;
   }
@@ -1020,7 +1008,6 @@ table {
   padding: 2rem;
   box-sizing: border-box;
 }
-
 
 /* =========================================
    HEADER
@@ -1074,7 +1061,6 @@ table {
   color: var(--primary);
 }
 
-
 /* =========================================
    SECTIONS
 ========================================= */
@@ -1114,7 +1100,6 @@ table {
   color: var(--text-secondary);
 }
 
-
 /* =========================================
    FORM
 ========================================= */
@@ -1122,7 +1107,6 @@ table {
 .harvest-form-container {
   padding: 1.5rem;
 }
-
 
 /* =========================================
    RECORD COUNT
@@ -1141,7 +1125,6 @@ table {
   font-weight: 600;
 }
 
-
 /* =========================================
    TABLE
 ========================================= */
@@ -1156,13 +1139,11 @@ table {
   box-sizing: border-box;
 }
 
-
 /* =========================================
    MOBILE
 ========================================= */
 
 @media (max-width: 700px) {
-
   .harvest-page {
     padding: 0.75rem;
   }
@@ -1211,7 +1192,6 @@ table {
   width: 100%;
 }
 
-
 /* =========================================
    FORM SECTION
 ========================================= */
@@ -1250,20 +1230,170 @@ table {
   color: var(--text-secondary);
 }
 
-
 /* =========================================
    HARVEST GRID
 ========================================= */
 
 .harvest-grid {
   display: grid;
-
-  grid-template-columns:
-    repeat(3, minmax(0, 1fr));
-
-  gap: 1rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1.25rem;
+  align-items: start;
 }
 
+.harvest-grid .form-field {
+  min-width: 0;
+}
+
+.harvest-grid .form-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.form-field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.95rem;
+  color: #111827;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.input-with-unit {
+  display: flex;
+  align-items: stretch;
+}
+
+.input-with-unit .form-input {
+  border-radius: 8px 0 0 8px;
+}
+
+.input-with-unit span {
+  display: flex;
+  align-items: center;
+  padding: 0 0.9rem;
+  border: 1px solid #d1d5db;
+  border-left: 0;
+  border-radius: 0 8px 8px 0;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.harvest-variety-card .field-reject-section {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.harvest-variety-card .field-reject-section h4 {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.harvest-variety-card {
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.harvest-variety-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.harvest-variety-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.harvest-variety-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.harvest-variety-remove {
+  border: 0;
+  background: transparent;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.harvest-variety-remove:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .harvest-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .harvest-grid .form-field.full-width {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .harvest-variety-card {
+    padding: 1rem;
+  }
+
+  .harvest-variety-header {
+    align-items: flex-start;
+  }
+
+  .harvest-grid {
+    gap: 1rem;
+  }
+
+  .form-input {
+    min-height: 46px;
+  }
+}
 
 /* =========================================
    FORM FIELDS
@@ -1274,7 +1404,7 @@ table {
 
   flex-direction: column;
 
-  gap: 0.35rem;
+  gap: 0.45rem;
 
   min-width: 0;
 }
@@ -1316,11 +1446,8 @@ table {
 .form-input:focus {
   border-color: var(--primary);
 
-  box-shadow:
-    0 0 0 2px
-    rgba(10, 197, 178, 0.15);
+  box-shadow: 0 0 0 2px rgba(10, 197, 178, 0.15);
 }
-
 
 /* =========================================
    KG INPUT
@@ -1350,7 +1477,6 @@ table {
   pointer-events: none;
 }
 
-
 /* =========================================
    QUALITY SUMMARY
 ========================================= */
@@ -1358,18 +1484,15 @@ table {
 .quality-summary {
   display: grid;
 
-  grid-template-columns:
-    repeat(3, 1fr);
+  grid-template-columns: repeat(3, 1fr);
 
   gap: 1rem;
 
   padding: 1rem;
 
-  background:
-    rgba(10, 197, 178, 0.08);
+  background: rgba(10, 197, 178, 0.08);
 
-  border: 1px solid
-    rgba(10, 197, 178, 0.25);
+  border: 1px solid rgba(10, 197, 178, 0.25);
 
   border-radius: 10px;
 }
@@ -1394,7 +1517,6 @@ table {
   color: var(--primary);
 }
 
-
 /* =========================================
    CALCULATED VALUE
 ========================================= */
@@ -1417,7 +1539,6 @@ table {
   color: var(--primary);
 }
 
-
 /* =========================================
    MESSAGES
 ========================================= */
@@ -1435,8 +1556,7 @@ table {
 
   color: #66bb6a;
 
-  border: 1px solid
-    rgba(46, 125, 50, 0.3);
+  border: 1px solid rgba(46, 125, 50, 0.3);
 }
 
 .form-message.error {
@@ -1444,10 +1564,8 @@ table {
 
   color: #ef5350;
 
-  border: 1px solid
-    rgba(198, 40, 40, 0.3);
+  border: 1px solid rgba(198, 40, 40, 0.3);
 }
-
 
 /* =========================================
    SAVE BUTTON
@@ -1469,27 +1587,21 @@ table {
   font-size: 0.95rem;
 }
 
-
 /* =========================================
    TABLET
 ========================================= */
 
 @media (max-width: 1000px) {
-
   .harvest-grid {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
 }
-
 
 /* =========================================
    MOBILE
 ========================================= */
 
 @media (max-width: 650px) {
-
   .form-section {
     padding: 1rem;
   }
@@ -1517,7 +1629,6 @@ table {
   .save-button {
     width: 100%;
   }
-
 }
 
 .reports-page {
@@ -1568,7 +1679,6 @@ table {
   color: var(--primary);
 }
 
-
 /* =========================================
    WEEK PICKER
 ========================================= */
@@ -1602,7 +1712,6 @@ table {
   border-radius: 7px;
 }
 
-
 /* =========================================
    KPI CARDS
 ========================================= */
@@ -1610,8 +1719,7 @@ table {
 .report-kpis {
   display: grid;
 
-  grid-template-columns:
-    repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 
   gap: 1rem;
 
@@ -1653,7 +1761,6 @@ table {
   color: var(--text-secondary);
 }
 
-
 /* =========================================
    EMPTY
 ========================================= */
@@ -1679,22 +1786,17 @@ table {
   color: var(--text-secondary);
 }
 
-
 /* =========================================
    MOBILE
 ========================================= */
 
 @media (max-width: 900px) {
-
   .report-kpis {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
 }
 
 @media (max-width: 650px) {
-
   .reports-page {
     padding: 0.75rem;
   }
@@ -1724,7 +1826,6 @@ table {
   .report-kpis {
     grid-template-columns: 1fr;
   }
-
 }
 
 .weekly-report {
@@ -1764,7 +1865,6 @@ table {
   color: white;
 }
 
-
 /* =========================================
    SECTIONS
 ========================================= */
@@ -1788,7 +1888,6 @@ table {
   color: var(--text-secondary);
 }
 
-
 /* =========================================
    SUMMARY
 ========================================= */
@@ -1796,8 +1895,7 @@ table {
 .report-summary-grid {
   display: grid;
 
-  grid-template-columns:
-    repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 
   gap: 1rem;
 }
@@ -1838,7 +1936,6 @@ table {
   color: var(--text-secondary);
 }
 
-
 /* =========================================
    REPORT CARD
 ========================================= */
@@ -1870,7 +1967,6 @@ table {
 .report-card-body {
   padding: 1rem;
 }
-
 
 /* =========================================
    TABLE
@@ -1917,13 +2013,11 @@ table {
   background: rgba(255, 255, 255, 0.03);
 }
 
-
 /* =========================================
    LARGE SCREENS
 ========================================= */
 
 @media (min-width: 1400px) {
-
   .reports-page {
     max-width: 1800px;
   }
@@ -1931,30 +2025,23 @@ table {
   .report-summary-card strong {
     font-size: 1.8rem;
   }
-
 }
-
 
 /* =========================================
    TABLET
 ========================================= */
 
 @media (max-width: 1000px) {
-
   .report-summary-grid {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
 }
-
 
 /* =========================================
    MOBILE
 ========================================= */
 
 @media (max-width: 600px) {
-
   .report-tabs {
     overflow-x: auto;
 
@@ -1972,7 +2059,6 @@ table {
   .report-card-body {
     padding: 0.5rem;
   }
-
 }
 
 /* =========================================
@@ -2015,7 +2101,6 @@ table {
   margin-top: 0.25rem;
 }
 
-
 /* =========================================
    SECTIONS
 ========================================= */
@@ -2027,7 +2112,6 @@ table {
 .packhouse-section .section-heading {
   margin-bottom: 1rem;
 }
-
 
 /* =========================================
    QUEUE
@@ -2070,7 +2154,6 @@ table {
   opacity: 0.65;
 }
 
-
 /* =========================================
    STATUS
 ========================================= */
@@ -2094,15 +2177,13 @@ table {
   color: #0f5132;
 }
 
-
 /* =========================================
    RECORD SUMMARY
 ========================================= */
 
 .packhouse-record-summary {
   display: grid;
-  grid-template-columns:
-    repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 
   gap: 1rem;
 
@@ -2131,7 +2212,6 @@ table {
   font-size: 0.7rem;
   opacity: 0.6;
 }
-
 
 /* =========================================
    PROCESS AREA
@@ -2165,7 +2245,6 @@ table {
   font-size: 0.9rem;
 }
 
-
 /* =========================================
    PACKHOUSE FORM
 ========================================= */
@@ -2194,8 +2273,7 @@ table {
 
 .packhouse-form-grid {
   display: grid;
-  grid-template-columns:
-    repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 
   gap: 1rem;
 }
@@ -2210,14 +2288,10 @@ table {
   border: 1px solid var(--border);
   border-radius: 5px;
 
-  background: var(
-    --formula-bg,
-    #e8f5e9
-  );
+  background: var(--formula-bg, #e8f5e9);
 
   font-weight: 600;
 }
-
 
 /* =========================================
    SAVED
@@ -2234,10 +2308,7 @@ table {
 
   border-radius: 8px;
 
-  background: var(
-    --formula-bg,
-    #e8f5e9
-  );
+  background: var(--formula-bg, #e8f5e9);
 }
 
 .packhouse-saved strong {
@@ -2249,7 +2320,6 @@ table {
   font-size: 0.8rem;
   opacity: 0.7;
 }
-
 
 /* =========================================
    EMPTY STATE
@@ -2273,7 +2343,6 @@ table {
   font-size: 0.8rem;
   opacity: 0.65;
 }
-
 
 /* =========================================
    TABLE
@@ -2312,7 +2381,6 @@ table {
   border-bottom: none;
 }
 
-
 /* =========================================
    QUALITY BADGES
 ========================================= */
@@ -2338,13 +2406,11 @@ table {
   color: #842029;
 }
 
-
 /* =========================================
    RESPONSIVE
 ========================================= */
 
 @media (max-width: 900px) {
-
   .packhouse-header {
     flex-direction: column;
   }
@@ -2360,11 +2426,9 @@ table {
   .packhouse-record-summary {
     grid-template-columns: 1fr 1fr;
   }
-
 }
 
 @media (max-width: 600px) {
-
   .packhouse-record-title {
     align-items: flex-start;
     flex-direction: column;
@@ -2392,7 +2456,6 @@ table {
   .packhouse-table td {
     white-space: nowrap;
   }
-
 }
 
 /* =========================================
@@ -2407,10 +2470,7 @@ table {
   border: 1px solid var(--border);
   border-radius: 8px;
 
-  background: var(
-    --card-bg,
-    var(--background)
-  );
+  background: var(--card-bg, var(--background));
 }
 
 .packhouse-qa-header {
@@ -2433,7 +2493,6 @@ table {
   font-size: 0.8rem;
   opacity: 0.65;
 }
-
 
 /* STATUS */
 
@@ -2465,14 +2524,12 @@ table {
   color: #842029;
 }
 
-
 /* SUMMARY */
 
 .packhouse-qa-summary {
   display: grid;
 
-  grid-template-columns:
-    repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 
   gap: 1rem;
 
@@ -2499,7 +2556,6 @@ table {
   font-size: 1rem;
 }
 
-
 /* BREAKDOWN */
 
 .packhouse-qa-breakdown {
@@ -2518,8 +2574,7 @@ table {
 .packhouse-qa-row {
   display: grid;
 
-  grid-template-columns:
-    1fr auto auto;
+  grid-template-columns: 1fr auto auto;
 
   gap: 1rem;
 
@@ -2565,19 +2620,15 @@ table {
   opacity: 0.65;
 }
 
-
 /* MOBILE */
 
 @media (max-width: 700px) {
-
   .packhouse-qa-summary {
-    grid-template-columns:
-      1fr 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .packhouse-qa-row {
-    grid-template-columns:
-      1fr auto;
+    grid-template-columns: 1fr auto;
   }
 
   .packhouse-qa-row-percent {
@@ -2586,16 +2637,12 @@ table {
 
     min-width: auto;
   }
-
 }
 
 @media (max-width: 450px) {
-
   .packhouse-qa-summary {
-    grid-template-columns:
-      1fr;
+    grid-template-columns: 1fr;
   }
-
 }
 
 .quality-critical {
