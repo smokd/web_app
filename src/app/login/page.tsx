@@ -1,15 +1,23 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { login } from './actions';
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { login } from "./actions";
 
 export default function LoginPage() {
-  const [error, setError] = useState('');
+  const searchParams = useSearchParams();
+
+  const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+
+  const returnTo = searchParams.get("returnTo") || "/dashboard";
 
   async function handleSubmit(formData: FormData) {
     setPending(true);
-    setError('');
+    setError("");
+
+    // Pass the original destination to the server action.
+    formData.set("returnTo", returnTo);
 
     try {
       const result = await login(formData);
@@ -19,11 +27,9 @@ export default function LoginPage() {
         setPending(false);
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
 
-      setError(
-        'Unable to sign in. Please try again.'
-      );
+      setError("Unable to sign in. Please try again.");
 
       setPending(false);
     }
@@ -33,26 +39,26 @@ export default function LoginPage() {
     <main
       className="bg-primary"
       style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem",
       }}
     >
       <div
         className="glass-panel animate-fade-in"
         style={{
-          width: '100%',
+          width: "100%",
           maxWidth: 420,
-          padding: '2rem',
+          padding: "2rem",
           borderRadius: 12,
         }}
       >
         <h1
           style={{
-            marginBottom: '1.5rem',
-            textAlign: 'center',
+            marginBottom: "1.5rem",
+            textAlign: "center",
           }}
         >
           Polaris QA Login
@@ -61,15 +67,13 @@ export default function LoginPage() {
         <form
           action={handleSubmit}
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem",
           }}
         >
           <div>
-            <label htmlFor="email">
-              Email
-            </label>
+            <label htmlFor="email">Email</label>
 
             <input
               id="email"
@@ -79,19 +83,17 @@ export default function LoginPage() {
               autoComplete="email"
               className="form-input"
               style={{
-                width: '100%',
-                padding: '0.6rem',
+                width: "100%",
+                padding: "0.6rem",
                 borderRadius: 6,
-                border: '1px solid var(--border)',
+                border: "1px solid var(--border)",
                 marginTop: 4,
               }}
             />
           </div>
 
           <div>
-            <label htmlFor="password">
-              Password
-            </label>
+            <label htmlFor="password">Password</label>
 
             <input
               id="password"
@@ -101,10 +103,10 @@ export default function LoginPage() {
               autoComplete="current-password"
               className="form-input"
               style={{
-                width: '100%',
-                padding: '0.6rem',
+                width: "100%",
+                padding: "0.6rem",
                 borderRadius: 6,
-                border: '1px solid var(--border)',
+                border: "1px solid var(--border)",
                 marginTop: 4,
               }}
             />
@@ -113,8 +115,8 @@ export default function LoginPage() {
           {error && (
             <p
               style={{
-                color: '#c62828',
-                fontSize: '0.9rem',
+                color: "#c62828",
+                fontSize: "0.9rem",
               }}
             >
               {error}
@@ -126,14 +128,12 @@ export default function LoginPage() {
             disabled={pending}
             className="btn btn-primary"
             style={{
-              width: '100%',
-              padding: '0.7rem',
+              width: "100%",
+              padding: "0.7rem",
               opacity: pending ? 0.7 : 1,
             }}
           >
-            {pending
-              ? 'Signing in…'
-              : 'Sign In'}
+            {pending ? "Signing in…" : "Sign In"}
           </button>
         </form>
       </div>

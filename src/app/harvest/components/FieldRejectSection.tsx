@@ -189,7 +189,7 @@ export default function FieldRejectSection({
               onChange={(event) =>
                 onTotalFieldRejectKgChange(event.target.value)
               }
-              className="form-input"
+              className="form-input reject-number-input"
               placeholder="0.00"
             />
 
@@ -268,6 +268,7 @@ export default function FieldRejectSection({
                   <input
                     id={`reject-value-${index}`}
                     type="number"
+                    className="form-input reject-number-input"
                     min="0"
                     max={inputMode === "PERCENT" ? 100 : undefined}
                     step="0.01"

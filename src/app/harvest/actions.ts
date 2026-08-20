@@ -81,12 +81,34 @@ function resolveRejectBreakdown(
     throw new Error(`${fieldName} KG breakdown exceeds total reject kg`);
   }
 
-  const remainingKg = Math.max(0, totalRejectKg - fixedKg);
+  /*  const remainingKg = Math.max(0, totalRejectKg - fixedKg);
+
+  const percentTotal = percentEntries.reduce(
+    (sum, reject) => sum + reject.inputValue,
+    0,
+  ); */
 
   const percentTotal = percentEntries.reduce(
     (sum, reject) => sum + reject.inputValue,
     0,
   );
+
+  if (percentEntries.length > 0 && Math.abs(percentTotal - 100) > 0.1) {
+    throw new Error(`${fieldName} percentage breakdown must total 100%`);
+  }
+
+  return rejects.map((reject) => {
+    const rejectKg =
+      reject.inputMode === "KG"
+        ? reject.inputValue
+        : totalRejectKg * (reject.inputValue / 100);
+
+    return {
+      ...reject,
+      rejectKg,
+      rejectPct: totalRejectKg > 0 ? (rejectKg / totalRejectKg) * 100 : 0,
+    };
+  });
 
   if (percentEntries.length > 0 && Math.abs(percentTotal - 100) > 0.1) {
     throw new Error(`${fieldName} percentage breakdown must total 100%`);
@@ -338,7 +360,7 @@ function parsePackhouse(
 
       if (!rejectType) {
         throw new Error(
-          `Packhouse reject type is required at row ${rejectIndex + 1}`,
+          `Packhouse reject type is required for ${variety} at reject row ${rejectIndex + 1}`,
         );
       }
 
@@ -406,12 +428,12 @@ export async function createHarvestRecord(formData: FormData) {
     throw new Error("Harvest date is required");
   }
 
-  const harvestEntries = parseHarvestEntries(formData.get("harvestEntries"));
+  const harvestEntriesRaw = formData.get("harvestEntries");
 
-  if (harvestEntries.length === 0) {
-    throw new Error("At least one harvest variety is required");
-  }
-
+  const harvestEntries =
+    harvestEntriesRaw && String(harvestEntriesRaw).trim() !== ""
+      ? parseHarvestEntries(harvestEntriesRaw)
+      : [];
   /*
    * =========================================
    * VALIDATE + RESOLVE HARVEST ENTRIES
@@ -425,15 +447,41 @@ export async function createHarvestRecord(formData: FormData) {
       throw new Error(`Harvested kg is invalid for ${entry.variety}`);
     }
 
-    const totalFieldRejectKg = entry.fieldRejects.reduce((sum, reject) => {
-      const value = Number(reject.inputValue) || 0;
+    const hasPercentRejects = entry.fieldRejects.some(
+      (reject) => reject.inputMode === "PERCENT",
+    );
 
-      if (reject.inputMode === "KG") {
-        return sum + value;
+    const hasKgRejects = entry.fieldRejects.some(
+      (reject) => reject.inputMode === "KG",
+    );
+
+    if (hasPercentRejects && hasKgRejects) {
+      throw new Error(
+        `Field rejects for ${entry.variety} cannot mix KG and percentage input.`,
+      );
+    }
+
+    let totalFieldRejectKg = 0;
+
+    if (hasPercentRejects) {
+      const percentTotal = entry.fieldRejects.reduce(
+        (sum, reject) => sum + (Number(reject.inputValue) || 0),
+        0,
+      );
+
+      if (Math.abs(percentTotal - 100) > 0.1) {
+        throw new Error(
+          `Field reject percentages for ${entry.variety} must total 100%. Current total: ${percentTotal.toFixed(2)}%`,
+        );
       }
 
-      return sum + (harvestedKg * value) / 100;
-    }, 0);
+      totalFieldRejectKg = harvestedKg;
+    } else {
+      totalFieldRejectKg = entry.fieldRejects.reduce(
+        (sum, reject) => sum + (Number(reject.inputValue) || 0),
+        0,
+      );
+    }
 
     if (totalFieldRejectKg > harvestedKg + 0.01) {
       throw new Error(
@@ -441,7 +489,7 @@ export async function createHarvestRecord(formData: FormData) {
       );
     }
 
-    const fieldRejectPct = calcRejectPct(entry.harvestedKg, totalFieldRejectKg);
+    const fieldRejectPct = calcRejectPct(harvestedKg, totalFieldRejectKg);
 
     const resolvedFieldRejects = resolveRejectBreakdown(
       entry.fieldRejects,

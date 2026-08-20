@@ -2,6 +2,7 @@
 
 type RejectRow = {
   rejectType: string;
+  inputMode: "KG" | "PERCENT";
   inputValue: number;
 };
 
@@ -47,7 +48,7 @@ export default function PackhouseSection({
         processedKg: 0,
         rejectKg: 0,
         rejects: [],
-        rejectInputMode: "KG",
+        rejectInputMode: "PERCENT",
       },
     ]);
   };
@@ -80,8 +81,16 @@ export default function PackhouseSection({
     entryIndex: number,
     mode: "KG" | "PERCENT",
   ) => {
+    const entry = entries[entryIndex];
+
+    if (!entry) return;
+
     updateEntry(entryIndex, {
       rejectInputMode: mode,
+      rejects: entry.rejects.map((reject) => ({
+        ...reject,
+        inputMode: mode,
+      })),
     });
   };
 
@@ -95,6 +104,7 @@ export default function PackhouseSection({
         ...entry.rejects,
         {
           rejectType: "",
+          inputMode: entry.rejectInputMode,
           inputValue: 0,
         },
       ],
@@ -332,7 +342,7 @@ export default function PackhouseSection({
                               : Number(event.target.value),
                         })
                       }
-                      className="form-input"
+                      className="form-input reject-number-input"
                       placeholder="0.00"
                     />
 
@@ -363,7 +373,7 @@ export default function PackhouseSection({
                               : Number(event.target.value),
                         })
                       }
-                      className="form-input"
+                      className="form-input reject-number-input"
                       placeholder="0.00"
                     />
 
@@ -480,7 +490,7 @@ export default function PackhouseSection({
                                 : Number(event.target.value),
                           })
                         }
-                        className="form-input"
+                        className="form-input reject-number-input"
                         placeholder="0.00"
                       />
 
@@ -579,8 +589,11 @@ export default function PackhouseSection({
                                   rejectType: event.target.value,
                                 })
                               }
+                              className={`form-input ${
+                                !reject.rejectType ? "field-invalid" : ""
+                              }`}
                             >
-                              <option value="">— Select —</option>
+                              <option value="">— Select reject type —</option>
 
                               {DEFECT_TYPES.map((type) => (
                                 <option key={type} value={type}>
@@ -627,7 +640,7 @@ export default function PackhouseSection({
                                         : Number(event.target.value),
                                   })
                                 }
-                                className="form-input"
+                                className="form-input reject-number-input"
                                 placeholder="0.00"
                               />
 
