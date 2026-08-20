@@ -437,6 +437,11 @@ export default function HarvestForm({
   return (
     <form
       id="harvest-form"
+      onChange={() => {
+        if (message) {
+          setMessage("");
+        }
+      }}
       onSubmit={(event) => {
         event.preventDefault();
 
