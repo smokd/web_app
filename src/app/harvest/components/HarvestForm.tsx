@@ -362,6 +362,8 @@ export default function HarvestForm({
       variety: entry.variety,
       harvestedKg: Number(entry.harvestedKg) || 0,
       blocks: entry.blocks,
+      fieldRejectInputMode: entry.fieldRejectInputMode,
+      totalFieldRejectKg: Number(entry.totalFieldRejectKg) || 0,
       fieldRejects: entry.fieldRejects.map((row) => ({
         rejectType: row.rejectType,
         inputMode: row.inputMode,

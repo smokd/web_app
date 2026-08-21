@@ -17,6 +17,8 @@ type HarvestEntryInput = {
   variety: string;
   harvestedKg: number;
   blocks?: string | null;
+  fieldRejectInputMode: RejectInputMode;
+  totalFieldRejectKg: number;
   fieldRejects: FieldRejectInput[];
 };
 
@@ -75,6 +77,10 @@ function resolveRejectBreakdown(
     (reject) => reject.inputMode === "PERCENT",
   );
 
+  if (kgEntries.length > 0 && percentEntries.length > 0) {
+    throw new Error(`${fieldName} cannot mix KG and percentage input`);
+  }
+
   const fixedKg = kgEntries.reduce((sum, reject) => sum + reject.inputValue, 0);
 
   if (fixedKg > totalRejectKg + 0.01) {
@@ -102,23 +108,6 @@ function resolveRejectBreakdown(
       reject.inputMode === "KG"
         ? reject.inputValue
         : totalRejectKg * (reject.inputValue / 100);
-
-    return {
-      ...reject,
-      rejectKg,
-      rejectPct: totalRejectKg > 0 ? (rejectKg / totalRejectKg) * 100 : 0,
-    };
-  });
-
-  if (percentEntries.length > 0 && Math.abs(percentTotal - 100) > 0.1) {
-    throw new Error(`${fieldName} percentage breakdown must total 100%`);
-  }
-
-  return rejects.map((reject) => {
-    const rejectKg =
-      reject.inputMode === "KG"
-        ? reject.inputValue
-        : remainingKg * (reject.inputValue / 100);
 
     return {
       ...reject,
@@ -232,12 +221,22 @@ function parseHarvestEntries(
 
     const blocks = String(row.blocks ?? "").trim() || null;
 
+    const fieldRejectInputMode = parseRejectInputMode(
+      row.fieldRejectInputMode,
+    );
+
+    const totalFieldRejectKg = Number(row.totalFieldRejectKg ?? 0);
+
     if (!variety) {
       throw new Error(`Harvest variety is required at row ${index + 1}`);
     }
 
     if (!Number.isFinite(harvestedKg) || harvestedKg <= 0) {
       throw new Error(`Harvested kg is invalid for ${variety}`);
+    }
+
+    if (!Number.isFinite(totalFieldRejectKg) || totalFieldRejectKg < 0) {
+      throw new Error(`Field reject total is invalid for ${variety}`);
     }
 
     const fieldRejects = Array.isArray(row.fieldRejects)
@@ -282,6 +281,8 @@ function parseHarvestEntries(
       variety,
       harvestedKg,
       blocks,
+      fieldRejectInputMode,
+      totalFieldRejectKg,
       fieldRejects,
     };
   });
@@ -447,36 +448,37 @@ export async function createHarvestRecord(formData: FormData) {
       throw new Error(`Harvested kg is invalid for ${entry.variety}`);
     }
 
-    const hasPercentRejects = entry.fieldRejects.some(
-      (reject) => reject.inputMode === "PERCENT",
-    );
-
-    const hasKgRejects = entry.fieldRejects.some(
-      (reject) => reject.inputMode === "KG",
-    );
-
-    if (hasPercentRejects && hasKgRejects) {
-      throw new Error(
-        `Field rejects for ${entry.variety} cannot mix KG and percentage input.`,
-      );
-    }
-
     let totalFieldRejectKg = 0;
 
-    if (hasPercentRejects) {
+    if (entry.fieldRejectInputMode === "PERCENT") {
+      if (entry.fieldRejects.some((reject) => reject.inputMode !== "PERCENT")) {
+        throw new Error(
+          `Field reject input mode does not match the breakdown for ${entry.variety}`,
+        );
+      }
+
       const percentTotal = entry.fieldRejects.reduce(
         (sum, reject) => sum + (Number(reject.inputValue) || 0),
         0,
       );
 
-      if (Math.abs(percentTotal - 100) > 0.1) {
+      if (
+        entry.fieldRejects.length > 0 &&
+        Math.abs(percentTotal - 100) > 0.1
+      ) {
         throw new Error(
           `Field reject percentages for ${entry.variety} must total 100%. Current total: ${percentTotal.toFixed(2)}%`,
         );
       }
 
-      totalFieldRejectKg = harvestedKg;
+      totalFieldRejectKg = entry.totalFieldRejectKg;
     } else {
+      if (entry.fieldRejects.some((reject) => reject.inputMode !== "KG")) {
+        throw new Error(
+          `Field reject input mode does not match the breakdown for ${entry.variety}`,
+        );
+      }
+
       totalFieldRejectKg = entry.fieldRejects.reduce(
         (sum, reject) => sum + (Number(reject.inputValue) || 0),
         0,
